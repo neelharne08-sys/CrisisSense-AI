@@ -296,7 +296,8 @@ class BayesianForwardFilter:
             flip_flop_count=self.decision.flip_flop_count,
             regime_shift_detected=self.learner.regime_shift_detected,
             temperature=self.learner.temperature,
-            cap_alert=cap_alert
+            cap_alert=cap_alert,
+            events=valid_events
         )
 
         self.minute_payloads[minute] = payload

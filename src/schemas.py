@@ -95,3 +95,4 @@ class MinuteStatePayload(BaseModel):
     regime_shift_detected: bool
     temperature: float = 1.0
     cap_alert: Optional[CAPAlert] = None
+    events: List[StreamEvent] = Field(default_factory=list)
