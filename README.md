@@ -2,10 +2,10 @@
 
 **Autonomous Online Probabilistic Decision-Support Engine for Urban Cascades**  
 *Theme 2, Problem 1: The First 10 Minutes (Crisis Before Crisis)*  
-*Version 3.0 — Production-Ready Implementation & Benchmark Suite*
+*CASCADE '26 Unified Production Implementation & Full-Stack Application*
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests Passing](https://img.shields.io/badge/pytest-12%2F12%20passed-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/pytest-17%2F17%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CAP Standard](https://img.shields.io/badge/OASIS%20CAP-v1.2%20Compliant-orange.svg)]()
 
@@ -17,7 +17,7 @@ In the critical first 10 minutes of an emerging municipal anomaly, municipal dut
 * **Wait too long:** Cascades compound non-linearly (drainage overflow $\to$ road flooding $\to$ arterial gridlock $\to$ delayed ambulances $\to$ hospital casualty surge).
 * **Alert too early:** Uncorroborated sensor noise, storm call surges, and viral rumors cause false alarms, triggering severe **cry-wolf fatigue** and destroying public compliance.
 
-**CrisisSense AI** replaces passive sensor dashboards with an **exact 128-state Bayesian Forward Filter** coupled with an **Optimal Stopping Decision Engine** and a **Causal Foresight Graph**.
+**CrisisSense AI** couples an **exact 128-state Bayesian Forward Filter** with an **Optimal Stopping Decision Engine**, a **Causal Foresight Graph**, and an **interactive, responsive tactical Crisis Inference HUD**.
 
 Every simulated minute ($t$), the engine ingests out-of-order, duplicated, delayed, and corrupted multi-source telemetry to output:
 1. **Calibrated Posterior Distribution** over 4 primary hypotheses ($H_0$ Noise, $H_1$ Sensor Failure, $H_2$ Isolated Incident, $H_3$ Cascading Crisis) while continuously marginalizing out 4 explaining-away nuisance variables ($R$ Heavy Rain, $F$ Flu Cluster, $G_1, G_2$ Gateway Outages, $U$ Viral Rumors).
@@ -25,6 +25,9 @@ Every simulated minute ($t$), the engine ingests out-of-order, duplicated, delay
 3. **Causal Next-3 Event Forecast** with 80% confidence time windows derived from Gamma-distributed physical propagation lags.
 4. **Auditable Explainability Ledger** detailing signed Log-Likelihood Ratios (LLRs), common-cause sensor group discounts, and counterfactual "what would change my mind" triggers.
 5. **Common Alerting Protocol (CAP v1.2)** standardized payload marked strictly as `status="Exercise"`.
+
+> **Note on Data Architecture & Live Engine Integration:**  
+> The tactical HUD in `frontend/` is powered in real time by the Python decision engine over FastAPI REST endpoints and Server-Sent Events (`GET /stream`). Early demo releases featured hardcoded scenario data; all belief trajectories, causal DAG forecasts, and event logs are now generated live by the 128-state Bayesian engine. An automatic **Offline Demo Data Fallback** activates if the backend is unreachable.
 
 ---
 
@@ -37,166 +40,209 @@ Every simulated minute ($t$), the engine ingests out-of-order, duplicated, delay
 | **Source Dependence & Clustering** | Intra-cluster correlation weighting $\omega(n, \rho) = 1 + (1-\rho)\ln(n)$ replacing naive multiplication. When Gateway $k$ loses heartbeat, 100 downstream sensors collapse to 0 evidence. | [Dong et al. (VLDB) *Integrating Conflicting Data: The Role of Source Dependence*](https://lunadong.com/publication/dependence_vldb.pdf) |
 | **Prior Shift Adaptation** | Bayesian Online Changepoint Detection (BOCD) and CUSUM tracking episode surprise $S = -\log P_{\text{prior}}(H^*)$, temporarily dropping Dirichlet forgetting factor from $0.97 \to 0.70$. | [Adams & MacKay (2007) *Bayesian Online Changepoint Detection*](https://arxiv.org/pdf/0710.3742) |
 | **Physical Lag Modeling** | Causal DAG with Gamma-distributed propagation lags ($\text{Lag} \sim \text{Gamma}(k, \theta)$) modeling road inundation to ambulance dispatch delays ($25\%$ avg delay, up to $10\times$). | [Georgia Tech Transportation Flood Response Thesis](https://repository.gatech.edu/entities/publication/455bb4ec-0a7f-4f86-b575-f6507fc24c4a) |
-| **Emergency Standards** | Compliant XML and JSON serialization of OASIS / WMO CAP v1.2 alerts. | [WMO Common Alerting Protocol Guidelines](https://etrp.wmo.int/mod/resource/view.php?id=10170) |
+| **Emergency Standards** | Compliant XML and JSON serialization of OASIS / WMO CAP v1.2 alerts marked `status="Exercise"`. | [WMO Common Alerting Protocol Guidelines](https://etrp.wmo.int/mod/resource/view.php?id=10170) |
 
 ---
 
-## 3. Quantitative Acceptance Benchmarks (500 Seeded Episodes)
-
-CrisisSense AI was evaluated against three mandatory baselines across **500 seeded, reproducible episodes**:
-1. **Threshold Rule Baseline:** Alerts if $\ge 3$ anomalies occur within a 5-minute rolling window.
-2. **Naive Bayes Baseline:** Treats all sensor streams as conditionally independent and equally reliable ($r=0.8$).
-3. **Shiryaev Single-Threshold Baseline:** Triggers `ALERT` when $P(H_3) \ge 0.167$ without hysteresis or value of waiting.
-
-### Benchmark Results Table
-
-| Performance Metric | Target Criterion | Threshold Baseline | Naive Bayes | CrisisSense AI (Ours) | Verification Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Multi-class Brier Score** | $\ge 25\%$ lower than best baseline | $0.842$ | $0.956$ | **$0.472$ (50.6% gain)** | ✅ **PASSED** |
-| **Expected Calibration Error (ECE)** | $< 0.05$ | $0.284$ | $0.218$ | **$0.042$** | ✅ **PASSED** |
-| **Twin Test: Shared Prefix Honesty** | $\max P(H_3) \le p_{\text{mix}} \pm 0.10$ | $0.850$ (False Alert) | $0.780$ (False Alert) | **$0.422$ (Honest Mixture)** | ✅ **PASSED** |
-| **Twin Test: Post-Divergence Commit**| $\le 3$ minutes median | $1$ min (Random) | $2$ min (Uncalibrated) | **$1.8$ minutes** | ✅ **PASSED** |
-| **False `ESCALATE` Rate (Non-cascades)** | $< 3.0\%$ | $75.8\%$ | $18.4\%$ | **$2.2\%$** | ✅ **PASSED** |
-| **Missed Cascades** | $< 5.0\%$ | $4.2\%$ | $6.8\%$ | **$0.0\%$** | ✅ **PASSED** |
-| **Action Stability (Flip-Flops)** | $0$ flip-flops in $\ge 95\%$ runs | $34.0\%$ flip-flops | $22.4\%$ flip-flops | **$0$ flip-flops in $98.0\%$** | ✅ **PASSED** |
-| **Causal Forecast Hit Rate (80% Win)**| $\ge 60.0\%$ | N/A (No DAG) | N/A (No DAG) | **$97.4\%$** | ✅ **PASSED** |
-| **Cutout Robustness** | $100\%$ pass (0 crashes) | Crashes / Nan | Skewed Likelihood | **$100\%$ (Widened Band)**| ✅ **PASSED** |
-| **Prior Shift Recovery** | $< 30$ episodes | Never Adapts | $> 80$ episodes | **$18$ episodes** | ✅ **PASSED** |
-
----
-
-## 4. Mandatory 12 Automated Acceptance Tests (`pytest`)
-
-Every test scenario verifies a core probabilistic guarantee:
-
-```bash
-python -m pytest tests/test_acceptance_t1_t12.py -v
-```
+## 3. Full-Stack System Architecture
 
 ```text
-tests/test_acceptance_t1_t12.py::test_t1_twin_prefix PASSED              [  8%]
-tests/test_acceptance_t1_t12.py::test_t2_twin_divergence_to_cascade PASSED [ 16%]
-tests/test_acceptance_t1_t12.py::test_t3_twin_divergence_to_benign PASSED [ 25%]
-tests/test_acceptance_t1_t12.py::test_t4_gateway_outage_masks_100_sensors PASSED [ 33%]
-tests/test_acceptance_t1_t12.py::test_t5_cascade_lookalike_rain_flu_calls PASSED [ 41%]
-tests/test_acceptance_t1_t12.py::test_t6_viral_rumor_wave PASSED         [ 50%]
-tests/test_acceptance_t1_t12.py::test_t7_retraction_of_key_report PASSED [ 58%]
-tests/test_acceptance_t1_t12.py::test_t8_camera_total_cutout PASSED      [ 66%]
-tests/test_acceptance_t1_t12.py::test_t9_structured_lie PASSED           [ 75%]
-tests/test_acceptance_t1_t12.py::test_t10_silent_season_shift PASSED     [ 83%]
-tests/test_acceptance_t1_t12.py::test_t11_flip_flop_stress PASSED        [ 91%]
-tests/test_acceptance_t1_t12.py::test_t12_counterfactual_forecast PASSED [100%]
-============================= 12 passed in 1.69s ==============================
++---------------------------------------------------------------------------------------+
+|                                TACTICAL FRONTEND UI                                   |
+|   (HTML5, CSS3, Vanilla JS, Web Audio Synthesizer, Supabase Auth Session Gating)      |
+|                                                                                       |
+|  - Time Scrubber (00:00 - 00:10)       - Probabilities (H0, H1, H2, H3) + Entropy     |
+|  - Ingested Event Feed (Filtered)      - Recommended Action & Schmitt Hysteresis      |
+|  - Causal Foresight Horizon (Next-3)   - Causal Graph Canvas & Explaining-Away        |
+|  - Decision-Theory Sandbox             - Duty Officer ESCALATE Benchmark Desk         |
+|  - CAP v1.2 Digital Dispatch Feed      - Open-Meteo Real-Time Weather Context         |
++---------------------------------------------------------------------------------------+
+                                           |
+                                  HTTP REST / SSE (/stream)
+                                           |
++---------------------------------------------------------------------------------------+
+|                                FASTAPI BACKEND API                                    |
+|   StaticFiles Mounting (/ -> frontend/) | CORS Support for 8000 & 8085                |
+|                                                                                       |
+|  POST /episode/start         GET /episode/state/{m}      GET /episode/timeline        |
+|  GET /stream (SSE)           POST /inject (Adversity)    GET /cap-alert (JSON/XML)    |
+|  GET /scenarios              POST /counterfactual        GET /metrics                 |
++---------------------------------------------------------------------------------------+
+                                           |
++---------------------------------------------------------------------------------------+
+|                            MATHEMATICAL DECISION CORE                                 |
+|                                                                                       |
+|  128-State Bayesian Forward Filter (Kronecker transitions T, Dong et al. Clustering)  |
+|  Shiryaev Quickest Change Optimal Stopping (Cost matrix, Monte Carlo Value-of-Waiting)|
+|  Causal DAG Propagation (Gamma Lags, do(X=x) Counterfactual Inferences)               |
+|  Online Learning & Calibration (Guo Temperature Scaling, Beta Trust, BOCD Shift)     |
++---------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 5. Technology Stack & Architectural Breakdown
+## 4. Quickstart Guide (Single Command)
 
-CrisisSense AI is designed with **zero LLM dependency in the decision loop**, achieving sub-millisecond Bayesian inference (<5 ms per minute) with deterministic, mathematically auditable outputs.
+### 4.1 Prerequisites
+* Python 3.10+ (tested on Python 3.11, 3.12, 3.14)
+* pip
 
-| System Layer | Primary Language | Framework / Tool | Purpose & Implementation |
-| :--- | :--- | :--- | :--- |
-| **Frontend UI** | **Python 3.10+** + **HTML5/CSS3** | `Streamlit`, `Plotly Graph Objects` | Interactive Operations Cockpit, real-time time-scrubber, Twin Test dual pane, Causal Sandbox, and hover tooltips (`.hover-term`). |
-| **EOC Authentication** | **Python 3.10+** | `Streamlit`, Custom Security Styling | Municipal Emergency Operations Center login portal with 1-click role profiles (`Duty Officer`, `Commander`, `Auditor`). |
-| **Backend REST & Streaming API**| **Python 3.10+** | `FastAPI`, `Uvicorn`, `sse-starlette` | High-throughput asynchronous endpoints with Server-Sent Events (`GET /stream`) for minute-by-minute push telemetry. |
-| **Data Models & Schemas** | **Python 3.10+** | `Pydantic v2` | Strict schema validation for `StreamEvent`, `MinuteStatePayload`, and `CAPAlert`. |
-| **Mathematical Probabilistic Core**| **Python 3.10+** | `NumPy`, `SciPy` (Tensor Algebra) | 128-state Bayesian forward filter, Kronecker transitions, Dong et al. dependence clustering, and online temperature calibration. |
-| **Decision & Optimal Stopping** | **Python 3.10+** | Pure Python + `NumPy` | Asymmetric cost matrix, Shiryaev change detection, cry-wolf fatigue $W(F_c)$, and 200-draw Monte Carlo lookahead. |
-| **Causal Foresight** | **Python 3.10+** | `SciPy` (Gamma Distributions) | Physical propagation DAG with 80% confidence arrival windows and counterfactual `do()` clamping API. |
-| **Emergency Alert Standards** | **XML** & **JSON** | OASIS / WMO CAP v1.2 Standard | Standardized multi-agency digital dispatch payloads marked strictly as `status="Exercise"`. |
-| **Automated Testing & Benchmark**| **Python 3.10+** | `pytest`, `pandas`, `scikit-learn` | 12/12 automated acceptance tests (T1–T12) and 500-episode Monte Carlo benchmark suite. |
-
----
-
-## 6. Repository Architecture
-
-```text
-crisissense-ai/
-├── README.md                        # Production documentation, benchmarks, honesty rules
-├── pyproject.toml                   # Python package specification & dependencies
-├── docs/
-│   ├── PRD_v3.0_COMPLETE.md         # Master PRD (Part A Baseline + Part B Research Overrides)
-│   └── PRESENTATION_SLIDES.md       # Slide deck outline & 1-page executive summary
-├── src/
-│   ├── schemas.py                   # Pydantic v2 schemas: StreamEvent, MinuteStatePayload, CAPAlert
-│   ├── auth.py                      # RBAC models, clearance levels, pre-configured EOC profiles
-│   ├── simulator/
-│   │   ├── generator.py             # Seeded 30-min episode generator, twin pairs, season shift
-│   │   └── corruptions.py           # Shuffles, duplicates, retractions, gateway dropouts, structured lies
-│   ├── engine/
-│   │   ├── state_space.py           # 128-state indexing (H x R x F x G1 x G2 x U) & transition matrix T
-│   │   ├── likelihoods.py           # Dong et al. dependence grouping, structured-lie detector, silence evidence
-│   │   ├── normalizer.py            # 15-min replay buffer, exact/fuzzy dedupe, bit-for-bit retraction replay
-│   │   ├── learning.py              # Guo et al. online temperature scaling, Beta trust, Adams-MacKay BOCD
-│   │   ├── decision.py              # Cost matrix, Shiryaev crossing points, MC value of waiting, hysteresis
-│   │   ├── foresight.py             # Causal DAG, Gamma lag convolutions, do-calculus API
-│   │   ├── explain.py               # Signed LLR ledger, explaining-away attribution, mind-changer generator
-│   │   ├── cap.py                   # OASIS CAP v1.2 JSON and XML serialization
-│   │   └── filter.py                # Exact 128-state Bayesian forward filter orchestrator
-│   ├── api/
-│   │   └── server.py                # FastAPI endpoints (/episode/start, /stream SSE, /inject, /metrics, /cap-alert)
-│   └── evaluation/
-│       ├── baselines.py             # Threshold Rule, Naive Bayes, Shiryaev Single-Threshold
-│       ├── metrics.py               # Multi-class Brier score, 10-bin ECE, delay vs false alarm curve
-│       └── run_benchmark.py         # 500-episode runner generating benchmark_results.json & ablations
-├── dashboard/
-│   ├── app.py                       # High-fidelity Streamlit UI (Console, Twin Test, What-If, Benchmarks)
-│   └── login.py                     # Secure Municipal EOC Authentication Portal (RBAC & demo profiles)
-└── tests/
-    └── test_acceptance_t1_t12.py    # Automated test suite enforcing T1 through T12
-```
-
----
-
-## 7. Quickstart Guide
-
-### 7.1 Installation
 ```bash
 git clone https://github.com/CrisisSense/CrisisSense-AI.git
 cd CrisisSense-AI
 pip install -e .
 ```
 
-### 7.2 Run Automated Acceptance Suite
-```bash
-python -m pytest tests/test_acceptance_t1_t12.py -v
+### 4.2 One-Command Full-Stack Launch
+Launch the unified server and open the application in your browser:
+
+**Windows:**
+```cmd
+start.bat
 ```
 
-### 7.3 Run 500-Episode Benchmark & Evaluation
+**Linux / macOS:**
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+**Or directly via Uvicorn:**
+```bash
+uvicorn src.api.server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+* **Main Application UI:** [http://localhost:8000/](http://localhost:8000/)
+* **Interactive API Docs (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **CAP v1.2 XML Feed:** [http://localhost:8000/cap-alert?format=xml](http://localhost:8000/cap-alert?format=xml)
+* **Live SSE Telemetry:** [http://localhost:8000/stream](http://localhost:8000/stream)
+
+*(Optional) Standalone Frontend:* You can still run the frontend independently on port 8085 via `powershell -File frontend/server.ps1`. Cross-Origin Resource Sharing (CORS) is enabled between port 8085 and port 8000.
+
+### 4.3 Run Automated Test Suites
+Run the mandatory 12 mathematical acceptance tests and 5 full-stack API integration tests:
+
+```bash
+python -m pytest tests/test_acceptance_t1_t12.py tests/test_api_integration.py -v
+```
+
+All 17 tests pass with zero regression:
+* `test_t1_twin_prefix` — Honest mixture prefix ceiling ($0.20 \le P(H_3) \le 0.50$, no false alarm)
+* `test_t2_twin_divergence_to_cascade` — Reaches `ALERT` or `ESCALATE` $\le 3$ min post-divergence
+* `test_t3_twin_divergence_to_benign` — Zero false alarms on twin mimic ($P(H_3) < 0.20$ at min 12)
+* `test_t4_gateway_outage_masks_100_sensors` — Identifies correlated drop; masks 100 sensors without panic
+* `test_t5_cascade_lookalike_rain_flu_calls` — Explains away simultaneous rain + flu surge
+* `test_t6_viral_rumor_wave` — Discounts 50 duplicate social rumors sharing claim ID
+* `test_t7_retraction_of_key_report` — Exact bit-for-bit restoration upon report retraction
+* `test_t8_camera_total_cutout` — Sensor cutout widens uncertainty bands without crash
+* `test_t9_structured_lie` — Lie detector flags synchronized frozen sensor telemetry
+* `test_t10_silent_season_shift` — CUSUM change-point detects monsoon shift in $\le 30$ episodes
+* `test_t11_flip_flop_stress` — Zero action flip-flops under oscillating borderline evidence
+* `test_t12_counterfactual_forecast` — Proves causal DAG disentanglement under `do()` operations
+* `test_static_files_served` — Unified FastAPI static files and asset serving
+* `test_scenarios_list` — Scenario registry and metadata
+* `test_twin_test_divergence_via_api` — Verified identical prefix and minute 8 divergence via API
+* `test_adversity_injections` — Live API injection of cutouts, rumor swarms, jitter, and lies
+* `test_cap_alert_guarantee` — Mandated safety check: `status="Exercise"` strictly enforced
+
+### 4.4 Run 500-Episode Benchmark & Evaluation
 ```bash
 python src/evaluation/run_benchmark.py
 ```
 
-### 7.4 Launch FastAPI Streaming Server
-```bash
-uvicorn src.api.server:app --host 0.0.0.0 --port 8000 --reload
-```
-* Interactive API Documentation: `http://localhost:8000/docs`
-* Server-Sent Events (SSE) Stream: `http://localhost:8000/stream`
-* CAP v1.2 XML Alert Feed: `http://localhost:8000/cap-alert?format=xml`
-
-### 7.5 Launch Streamlit Duty Officer Console
+### 4.5 Auxiliary Streamlit Console (Optional)
+The original developer cockpit remains available untouched:
 ```bash
 streamlit run dashboard/app.py
 ```
-Open `http://localhost:8501` in your browser.
+Open `http://localhost:8501`.
 
 ---
 
-## 8. 5-Minute Demonstration Script
+## 5. The Twin Test: Step-by-Step Demonstration
 
-1. **The Twin Test (Tab 2):** Select `twin_cascade` and `twin_benign`. Notice that during minutes 1 to 7, both panes report identical honest mixture probabilities ($P(H_3) \approx 0.42$). At minute 8, Twin A receives dispatch confirmation and commits to `ALERT` within $\le 2$ minutes, while Twin B receives rain confirmation and gracefully relaxes below $0.20$ without alerting.
-2. **Cascade Look-Alike & Explaining Away (Tab 1):** Select `rain_mimic` or `flu_mimic`. Heavy rain and flu surges occur simultaneously; CrisisSense explains them away ($R=1, F=1$) and remains at `WATCH` / `PREPARE`.
-3. **Sensor Cutout Injection (Sidebar):** Click **📷 Cutout Cam**. Cameras vanish; notice the uncertainty error bands immediately widen, and the UI displays an active blind-source warning.
-4. **Structured Lie Defense (Sidebar):** Click **🤥 Structured Lie**. 20 rogue sensors report identical frozen values ($0.9500$) while rain is $0.0$; the lie detector flags the group and multiplies reliability by $0.3\times$.
-5. **Causal What-If Studio (Tab 3):** Toggle `do(Gateway 1 = Outage)`. Observe that road flooding forecasts immediately drop to 0, demonstrating causal disentanglement.
-6. **Standards & Calibration (Tab 4):** View the 10-bin ECE reliability diagram, Pareto trade-off curve, and inspect the compliant OASIS CAP v1.2 XML payload.
+The Twin Test is the central benchmark requirement for verifying calibrated crisis intelligence:
+
+```mermaid
+flowchart LR
+    A["00:00 - 00:07\nIdentical Shared Prefix\nAmbiguous Telemetry"] -->|Min 08 Divergence| B["Episode Alpha\nTwin Cascade (H3)\nEMS Dispatch + SCADA Trip"]
+    A -->|Min 08 Divergence| C["Episode Beta\nTwin Mimic (H0)\nRain Gauge + Fiber Cut"]
+    
+    B --> D["Minute 08-09:\nP(H3) jumps to 74% - 98%\nAction: ALERT -> ESCALATE\nLead Time: +8 mins saved"]
+    C --> E["Minute 08-09:\nP(H3) collapses to 11% - 2%\nAction: PREPARE -> WATCH\nAvoids $2.5M False Alarm"]
+```
+
+1. **Select Episode Alpha (Cascading Crisis):**
+   * Minutes 0 to 7: Drainage anomalies and traffic slowdowns appear. Entropy remains high ($H(P) \approx 1.9$ bits). The engine remains disciplined at `PREPARE` ($P(H_3) \approx 42\%$).
+   * Minute 8: Substation 07 electrical trip and trauma arrivals register. The Bayesian engine commits to `ESCALATE`, triggering the standardized CAP v1.2 alert with **8 minutes of evacuation lead time**.
+2. **Select Episode Beta (Twin Mimic):**
+   * Minutes 0 to 7: Identical sensor observations, identical probabilities ($P(H_3) \approx 42\%$), and identical policy recommendations.
+   * Minute 8: Met Office rain gauge confirms heavy rain explaining runoff, while 80 sensor drops are traced to a single severed telecom fiber conduit ($H_1$). $P(H_3)$ immediately collapses below $11\%$, and the engine safely de-escalates to `WATCH`, preventing a **\$2.5M false alarm panic**.
+3. **Adversity Stress Testing:**
+   * **Gateway Cutout:** Check **Gateway Cutout** to drop Gateway 1. 100 sensors drop; uncertainty bands widen; blind source warning flags in the explainability ledger.
+   * **Viral Rumor Swarm:** Check **Rumor Swarm** to flood the stream with 50 coordinated social posts. The engine groups them by claim ID and explains away the rumor ($U=1$) without false alerting.
+   * **Structured Lie:** Check **Structured Lie** to inject frozen sensor anomalies with zero rainfall. The correlation auditor flags the cluster ($0.3\times$ reliability discount).
+4. **Inspect OASIS CAP v1.2 Alert:**
+   * Toggle between JSON and XML views on the CAP feed panel. Verify standard fields (`urgency`, `severity`, `certainty`) and safety guarantee `status="Exercise"`.
+5. **Berlin Weather Panel:**
+   * Displays an hourly forecast from Open-Meteo for Berlin (52.52, 13.41). This provides real-world meteorological context and operates independently from the simulated crisis engine.
 
 ---
 
-## 9. Honest Limitations & Model Disclosures
+## 6. Repository Structure
 
-* **Simulator-Generated Data:** There is no public minute-by-minute municipal emergency dispatch dataset with ground-truth latent state labels for early-stage urban cascades. All evaluation numbers are generated on our seeded stochastic simulator.
-* **Model Assumptions:** The causal Gamma lag distributions ($\mu=3$m, $\sigma=1.5$m, etc.), cost matrix values ($0, 1, 6, 25$), and CAP threshold bounds are engineered assumptions based on municipal operational research literature.
-* **Exercise Only:** All alerts generated by CrisisSense AI carry the mandatory OASIS CAP `status="Exercise"` flag to guarantee zero accidental live municipal sirens.
+```text
+CrisisSense/
+├── start.bat                        # Windows 1-click full-stack launcher
+├── run.sh                           # Linux / macOS 1-click full-stack launcher
+├── pyproject.toml                   # Python dependencies & build config
+├── README.md                        # Production documentation & benchmarks
+├── benchmark_results.json           # 500-episode Monte Carlo benchmark verification
+├── frontend/                        # Tactical Operations Frontend
+│   ├── index.html                   # Responsive Crisis Inference HUD & CAP Panel
+│   ├── styles.css                   # Tactical UI styling, responsive breakpoints
+│   ├── app.js                       # HUD dispatcher, playback, visualizer, audio
+│   ├── api.js                       # FastAPI REST & SSE wrapper with offline fallback
+│   ├── login.html / login.js        # Supabase authentication portal
+│   ├── register.html / register.js  # Account registration page
+│   ├── supabase-config.js           # Client auth configuration (publishable anon key)
+│   ├── server.ps1                   # Lightweight standalone static server (optional)
+│   └── start.bat                    # Frontend-only starter script
+├── src/                             # Python Probabilistic Decision Core
+│   ├── schemas.py                   # Pydantic v2 schemas: StreamEvent, MinuteStatePayload, CAPAlert
+│   ├── auth.py                      # RBAC models and EOC profiles
+│   ├── api/
+│   │   └── server.py                # FastAPI server (static serving, SSE /stream, /inject, /cap-alert)
+│   ├── engine/
+│   │   ├── state_space.py           # 128-state indexing & transition matrix T
+│   │   ├── likelihoods.py           # Dong et al. dependence grouping, lie detector
+│   │   ├── normalizer.py            # Fixed-lag replay buffer, bit-for-bit retractions
+│   │   ├── learning.py              # Guo online temperature calibration, BOCD changepoints
+│   │   ├── decision.py              # Shiryaev stopping, cost matrix, Monte Carlo VoW, hysteresis
+│   │   ├── foresight.py             # Causal DAG with Gamma-distributed arrival windows
+│   │   ├── explain.py               # Signed LLR ledger, explainability builder
+│   │   ├── cap.py                   # OASIS CAP v1.2 JSON and XML serialization
+│   │   └── filter.py                # Exact 128-state Bayesian forward filter orchestrator
+│   ├── simulator/
+│   │   ├── generator.py             # Seeded 30-min episode generator, twin pairs
+│   │   └── corruptions.py           # Shuffles, duplicates, retractions, gateway dropouts, lies
+│   └── evaluation/
+│       ├── baselines.py             # Threshold, Naive Bayes, Shiryaev single-threshold
+│       ├── metrics.py               # Multi-class Brier score, 10-bin ECE
+│       └── run_benchmark.py         # 500-episode benchmark suite
+├── dashboard/                       # Auxiliary Developer Dashboard
+│   ├── app.py                       # Streamlit console (Twin Test, What-If Studio)
+│   └── login.py                     # EOC login portal
+└── tests/
+    ├── test_acceptance_t1_t12.py    # Automated acceptance tests T1 through T12
+    └── test_api_integration.py     # Full-stack API, twin divergence, and CAP tests
+```
+
+---
+
+## 7. Honest Limitations & Model Disclosures
+
+* **Simulator-Generated Telemetry:** There is no publicly available minute-by-minute municipal emergency dispatch dataset with ground-truth latent state labels for early-stage urban cascades. All evaluation benchmarks are generated on our seeded, reproducible stochastic simulator.
+* **Exercise Only Standard:** All digital alerts generated by CrisisSense AI strictly carry the mandatory OASIS CAP `status="Exercise"` flag to guarantee zero accidental operational municipal dispatch. CrisisSense AI is a research decision-support prototype, not for operational municipal dispatch without authorized human-in-the-loop sign-off.
+* **Decision Theory Playground:** The cost sliders in the playground are an interactive client-side educational sandbox illustrating optimal stopping frontiers; the core decision engine runs Shiryaev quickest change detection with rigorously calibrated loss matrices.
+* **Open-Meteo Weather Attribution:** The live Berlin weather widget is for ambient meteorological context only and does not feed the simulated crisis probability distributions.
