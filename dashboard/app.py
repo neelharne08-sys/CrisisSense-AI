@@ -357,16 +357,32 @@ with tab_live:
         )
     with c_top4:
         st.markdown(
-            f"**{tip('Patience Gain (Wait 60s)', 'Value of Waiting: Expected cost savings from waiting 1 more minute before alarming. If positive, waiting for clearer sensor confirmation is safer and cheaper than panicking.')}**", 
+            f"**{tip('Patience Gain (Wait 60s)', 'Value of Waiting: Expected cost savings (in penalty points) from waiting 1 more minute before escalating. If positive, holding off for clearer sensor confirmation avoids costly false alarms.')}**", 
             unsafe_allow_html=True
         )
         vow = current_payload.value_of_waiting_saved
+        # Format cleanly as Cost Penalty Points saved rather than confusing raw "decimal units"
+        if vow >= 1.0:
+            vow_label = f"+{vow:.1f} pts"
+            vow_sub = "🟢 Strong Value to Wait"
+        elif vow > 0.05:
+            vow_label = f"+{vow:.1f} pts"
+            vow_sub = "🟡 Favorable to Wait"
+        else:
+            vow_label = "0.0 pts"
+            vow_sub = "⚡ Commit / Act Now"
+
         st.metric(
             "Patience Gain", 
-            f"{vow:.2f} units", 
-            "200-Draw MC Lookahead",
+            vow_label, 
+            vow_sub,
             label_visibility="collapsed",
-            help="Value of Waiting: Expected cost savings from waiting 1 more minute before alarming. If positive, waiting for clearer sensor confirmation is safer and cheaper than panicking."
+            help=(
+                "Value of Waiting: Expected reduction in cost penalty points (scale 0-25) from waiting 60 more seconds.\n"
+                "• Calculated via 200 Monte Carlo belief rollouts.\n"
+                "• Positive points mean waiting for clearer physical confirmation prevents costly false alarms.\n"
+                "• 0.0 points means waiting has no benefit; take immediate action."
+            )
         )
 
     st.markdown("---")
