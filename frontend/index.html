@@ -90,11 +90,12 @@
         <span class="value highlight-amber">60s BAYESIAN POSTERIOR</span>
       </div>
       <div class="telemetry-separator">/</div>
-      <div class="telemetry-item"> 
+      <div class="telemetry-item">
         <span class="label">STATUS:</span>
-        <span class="status-indicator live">
-          <span class="pulse-dot"></span> STREAM LIVE
+        <span class="status-indicator live" id="systemStatusIndicator">
+          <span class="pulse-dot"></span> <span id="systemStatusText">LIVE ENGINE</span>
         </span>
+        <span id="offlineBadge" class="offline-badge" style="display: none;">OFFLINE DEMO DATA</span>
       </div>
     </div>
 
@@ -312,6 +313,11 @@
               <input type="checkbox" id="toggleStreamJitter">
               <span class="toggle-track"></span>
               <span class="toggle-text">Out-of-Order</span>
+            </label>
+            <label class="toggle-pill" title="Inject 20 frozen drainage sensors with dry rain">
+              <input type="checkbox" id="toggleStructuredLie">
+              <span class="toggle-track"></span>
+              <span class="toggle-text">Structured Lie</span>
             </label>
           </div>
         </div>
@@ -553,6 +559,27 @@
               <div class="score-val" id="dutyOutcomeText">SIMULATING...</div>
             </div>
           </div>
+        </div>
+      </div>
+      <!-- COMMON ALERTING PROTOCOL (CAP v1.2) PANEL -->
+      <div class="cap-alert-panel" id="capAlertPanel">
+        <div class="cap-panel-header">
+          <div class="cap-header-left">
+            <span class="cap-standard-badge">OASIS / WMO CAP v1.2</span>
+            <span class="cap-exercise-badge">STATUS: EXERCISE ONLY</span>
+            <h4 class="cap-title">Common Alerting Protocol (CAP v1.2) Digital Dispatch Feed</h4>
+          </div>
+          <div class="cap-format-toggle">
+            <button class="cap-format-btn active" id="btnCapJson" data-format="json">JSON</button>
+            <button class="cap-format-btn" id="btnCapXml" data-format="xml">XML</button>
+          </div>
+        </div>
+        <div class="cap-panel-body">
+          <div class="cap-status-summary" id="capStatusSummary">
+            <span class="cap-pulse-indicator" id="capPulseIndicator"></span>
+            <span id="capStatusText">System in WATCH state &mdash; Alert dispatch staged (Exercise Only).</span>
+          </div>
+          <pre class="cap-code-block"><code id="capCodeContent">// Awaiting ESCALATE policy threshold crossing to dispatch standardized CAP v1.2 alert payload...</code></pre>
         </div>
       </div>
 
@@ -819,7 +846,7 @@
   <section class="section cost-calculator-section" id="cost-model">
     <div class="container">
       <div class="section-header">
-        <div class="section-eyebrow">DECISION THEORY PLAYGROUND</div>
+        <div class="section-eyebrow">DECISION THEORY PLAYGROUND &bull; ILLUSTRATIVE MODEL</div>
         <h2 class="section-title">Interactive Optimal Stopping &amp; Utility Simulator</h2>
         <p class="section-lead">Calibrate the economic and humanitarian tradeoff matrix. See how the optimal decision boundary &theta;* dynamically moves based on public panic costs and casualty penalties.</p>
       </div>
@@ -980,6 +1007,7 @@
   </footer>
 
   <!-- SCRIPT -->
+  <script src="api.js"></script>
   <script src="app.js"></script>
 
 </body>

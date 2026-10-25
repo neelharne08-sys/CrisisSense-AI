@@ -1,6 +1,7 @@
 /**
  * THE FIRST 10 MINUTES — Calibrated Crisis Decision Intelligence Engine
  * Frontend Simulation, Optimal Stopping, Twin Test Benchmark, & Causal Foresight HUD
+ * Connected to live FastAPI Bayesian Forward Filter Core with Offline Fallback
  */
 
 (function () {
@@ -60,10 +61,8 @@
     playTone(140, 0.18, 'sine', 0.25);
   }
 
-  // --- SCENARIO DATA DEFINITIONS ---
-  // The Twin Test: Minutes 00:00 to 00:07 are IDENTICAL in sensory observations.
-  // Divergence starts at 00:08.
-  const IDENTICAL_PREFIX_EVENTS = [
+  // --- OFFLINE FALLBACK DEMO DATA DEFINITIONS ---
+  const FALLBACK_PREFIX_EVENTS = [
     {
       minute: 0,
       timestamp: '00:00',
@@ -138,8 +137,7 @@
     }
   ];
 
-  // Episode Alpha: True Cascading Crisis (Structural Levee Failure & Substation Flood)
-  const SCENARIO_ALPHA_POST = [
+  const FALLBACK_ALPHA_POST = [
     {
       minute: 8,
       timestamp: '00:08',
@@ -169,8 +167,7 @@
     }
   ];
 
-  // Episode Beta: The Twin Mimic (Benign Storm + Flu Cluster + Gateway Fiber Sever)
-  const SCENARIO_BETA_POST = [
+  const FALLBACK_BETA_POST = [
     {
       minute: 8,
       timestamp: '00:08',
@@ -200,40 +197,35 @@
     }
   ];
 
-  // Mathematical belief trajectory over 10 minutes:
-  // [H0 (Noise), H1 (Sensor Failure), H2 (Isolated Incident), H3 (Cascading Crisis)]
-  const BELIEF_TRAJECTORY_ALPHA = [
-    { m: 0, p: [0.42, 0.35, 0.17, 0.06], action: 'WATCH', rat: 'Precipitation within 90-day percentile. Expected variance.' },
-    { m: 1, p: [0.38, 0.34, 0.20, 0.08], action: 'WATCH', rat: 'Runoff rising normally. Twin prefix indistinguishable.' },
-    { m: 2, p: [0.34, 0.32, 0.24, 0.10], action: 'WATCH', rat: 'Traffic slight deceleration. Cost of alert exceeds risk.' },
-    { m: 3, p: [0.28, 0.30, 0.28, 0.14], action: 'PREPARE', rat: 'Drainage anomalies detect differential pressure. Low-cost internal readiness.' },
-    { m: 4, p: [0.24, 0.28, 0.30, 0.18], action: 'PREPARE', rat: 'Dispatch call frequency climbing. Retain agency standby.' },
-    { m: 5, p: [0.20, 0.26, 0.32, 0.22], action: 'PREPARE', rat: 'Traffic corridor stagnant. Twin prefix uncertainty high (entropy 1.95 bits).' },
-    { m: 6, p: [0.18, 0.24, 0.33, 0.25], action: 'PREPARE', rat: 'Out-of-order packets buffered. Do not prematurely guess before split.' },
-    { m: 7, p: [0.15, 0.22, 0.33, 0.30], action: 'ALERT', rat: '911 queue saturation. Escalate to agency ALERT. Public siren withheld.' },
-    // Split point: 00:08
-    { m: 8, p: [0.04, 0.08, 0.18, 0.70], action: 'ALERT', rat: 'Substation SCADA disconnect matches physical breach hypothesis! Fast commitment.' },
+  const FALLBACK_BELIEF_ALPHA = [
+    { m: 0, p: [0.60, 0.15, 0.15, 0.10], action: 'WATCH', rat: 'Precipitation within baseline range. Expected background variance.' },
+    { m: 1, p: [0.45, 0.18, 0.17, 0.20], action: 'WATCH', rat: 'Runoff rising normally. Twin prefix indistinguishable.' },
+    { m: 2, p: [0.38, 0.20, 0.18, 0.24], action: 'WATCH', rat: 'Traffic slight deceleration. Cost of premature alarm exceeds risk.' },
+    { m: 3, p: [0.30, 0.20, 0.19, 0.31], action: 'PREPARE', rat: 'Drainage anomalies detect differential pressure. Low-cost internal readiness.' },
+    { m: 4, p: [0.25, 0.18, 0.19, 0.38], action: 'PREPARE', rat: 'Dispatch call frequency climbing. Retain agency standby.' },
+    { m: 5, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: 'Corridor stagnant. Twin prefix uncertainty high (entropy 1.95 bits).' },
+    { m: 6, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: 'Out-of-order packets buffered. Honest mixture ceiling enforced.' },
+    { m: 7, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: '911 queue saturation. Maintained prefix ceiling before physical divergence.' },
+    { m: 8, p: [0.05, 0.08, 0.13, 0.74], action: 'ALERT', rat: 'Substation SCADA disconnect matches physical breach hypothesis! Fast commitment.' },
     { m: 9, p: [0.01, 0.03, 0.06, 0.90], action: 'ESCALATE', rat: 'Hospitals loss of primary grid confirms cascading domino failure. TRIGGER PUBLIC ESCALATE!' },
     { m: 10, p: [0.00, 0.01, 0.01, 0.98], action: 'ESCALATE', rat: 'Breach confirmed. Full emergency mitigation underway with +8 min lead time.' }
   ];
 
-  const BELIEF_TRAJECTORY_BETA = [
-    { m: 0, p: [0.42, 0.35, 0.17, 0.06], action: 'WATCH', rat: 'Precipitation within 90-day percentile. Expected variance.' },
-    { m: 1, p: [0.38, 0.34, 0.20, 0.08], action: 'WATCH', rat: 'Runoff rising normally. Twin prefix indistinguishable.' },
-    { m: 2, p: [0.34, 0.32, 0.24, 0.10], action: 'WATCH', rat: 'Traffic slight deceleration. Cost of alert exceeds risk.' },
-    { m: 3, p: [0.28, 0.30, 0.28, 0.14], action: 'PREPARE', rat: 'Drainage anomalies detect differential pressure. Low-cost internal readiness.' },
-    { m: 4, p: [0.24, 0.28, 0.30, 0.18], action: 'PREPARE', rat: 'Dispatch call frequency climbing. Retain agency standby.' },
-    { m: 5, p: [0.20, 0.26, 0.32, 0.22], action: 'PREPARE', rat: 'Traffic corridor stagnant. Twin prefix uncertainty high (entropy 1.95 bits).' },
-    { m: 6, p: [0.18, 0.24, 0.33, 0.25], action: 'PREPARE', rat: 'Out-of-order packets buffered. Do not prematurely guess before split.' },
-    { m: 7, p: [0.15, 0.22, 0.33, 0.30], action: 'ALERT', rat: '911 queue saturation. Escalate to agency ALERT. Public siren withheld.' },
-    // Split point: 00:08 (Resolves as False Alarm / Benign Outage)
-    { m: 8, p: [0.12, 0.64, 0.16, 0.08], action: 'PREPARE', rat: 'Sensor cluster failure attributed to single fiber sever! Crisis probability collapses to 8%.' },
-    { m: 9, p: [0.25, 0.45, 0.26, 0.04], action: 'WATCH', rat: 'Hospital surge identified as pediatric flu outbreak. H3 ruled out. False alarm prevented.' },
-    { m: 10, p: [0.48, 0.38, 0.12, 0.02], action: 'WATCH', rat: 'Drainage levels normalizing. \$2.5M municipal panic penalty avoided!' }
+  const FALLBACK_BELIEF_BETA = [
+    { m: 0, p: [0.60, 0.15, 0.15, 0.10], action: 'WATCH', rat: 'Precipitation within baseline range. Expected background variance.' },
+    { m: 1, p: [0.45, 0.18, 0.17, 0.20], action: 'WATCH', rat: 'Runoff rising normally. Twin prefix indistinguishable.' },
+    { m: 2, p: [0.38, 0.20, 0.18, 0.24], action: 'WATCH', rat: 'Traffic slight deceleration. Cost of premature alarm exceeds risk.' },
+    { m: 3, p: [0.30, 0.20, 0.19, 0.31], action: 'PREPARE', rat: 'Drainage anomalies detect differential pressure. Low-cost internal readiness.' },
+    { m: 4, p: [0.25, 0.18, 0.19, 0.38], action: 'PREPARE', rat: 'Dispatch call frequency climbing. Retain agency standby.' },
+    { m: 5, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: 'Corridor stagnant. Twin prefix uncertainty high (entropy 1.95 bits).' },
+    { m: 6, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: 'Out-of-order packets buffered. Honest mixture ceiling enforced.' },
+    { m: 7, p: [0.22, 0.18, 0.18, 0.42], action: 'PREPARE', rat: '911 queue saturation. Maintained prefix ceiling before physical divergence.' },
+    { m: 8, p: [0.55, 0.25, 0.09, 0.11], action: 'PREPARE', rat: 'Sensor cluster failure attributed to single fiber sever! Crisis probability collapses to 11%.' },
+    { m: 9, p: [0.68, 0.20, 0.07, 0.05], action: 'WATCH', rat: 'Hospital surge identified as pediatric flu outbreak. H3 ruled out. False alarm prevented.' },
+    { m: 10, p: [0.82, 0.12, 0.04, 0.02], action: 'WATCH', rat: 'Drainage levels normalizing. $2.5M municipal panic penalty avoided!' }
   ];
 
-  // Foresight Forecasts for next 3 events based on current minute and scenario
-  function getForesightPredictions(minute, scenario) {
+  function getFallbackForesightPredictions(minute, scenario) {
     if (minute <= 2) {
       return [
         { target: 'Culvert S4-B pressure differential exceeds 2.5σ', window: '00:03 &ndash; 00:04', conf: '88%' },
@@ -279,16 +271,22 @@
 
   // --- STATE ---
   let currentMinute = 0;
-  let currentScenario = 'alpha'; // 'alpha' or 'beta'
+  let currentScenario = 'alpha'; // 'alpha' (twin_cascade) or 'beta' (twin_benign)
   let isPlaying = false;
   let playInterval = null;
   let playSpeed = 1500; // ms per minute
   let activeFilter = 'all';
+  let activeCapFormat = 'json';
+
+  // Live timeline cache from API { minute: MinuteStatePayload }
+  let liveTimelineCache = {};
+  let isApiOnline = false;
 
   // Adversity toggles
   let flagGatewayDrop = false;
   let flagRumorMimic = false;
   let flagStreamJitter = false;
+  let flagStructuredLie = false;
 
   // Duty officer interactive state
   let userEscalatedAtMinute = null;
@@ -311,6 +309,13 @@
   const soundToggle = document.getElementById('soundToggle');
   const audioIcon = document.getElementById('audioIcon');
   const audioLabel = document.getElementById('audioLabel');
+
+  // Status & Badges
+  const systemStatusIndicator = document.getElementById('systemStatusIndicator');
+  const systemStatusText = document.getElementById('systemStatusText');
+  const offlineBadge = document.getElementById('offlineBadge');
+
+  // Open-Meteo Weather
   const weatherStatus = document.getElementById('weatherStatus');
   const weatherRefreshBtn = document.getElementById('weatherRefreshBtn');
   const weatherTemperature = document.getElementById('weatherTemperature');
@@ -323,140 +328,6 @@
 
   const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
   const WEATHER_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
-
-  function getWeatherDescription(code) {
-    const descriptions = {
-      0: 'Clear sky',
-      1: 'Mainly clear',
-      2: 'Partly cloudy',
-      3: 'Overcast',
-      45: 'Fog',
-      48: 'Depositing rime fog',
-      51: 'Light drizzle',
-      53: 'Moderate drizzle',
-      55: 'Dense drizzle',
-      56: 'Light freezing drizzle',
-      57: 'Dense freezing drizzle',
-      61: 'Slight rain',
-      63: 'Moderate rain',
-      65: 'Heavy rain',
-      66: 'Light freezing rain',
-      67: 'Heavy freezing rain',
-      71: 'Slight snow',
-      73: 'Moderate snow',
-      75: 'Heavy snow',
-      77: 'Snow grains',
-      80: 'Slight rain showers',
-      81: 'Moderate rain showers',
-      82: 'Violent rain showers',
-      85: 'Slight snow showers',
-      86: 'Heavy snow showers',
-      95: 'Thunderstorm',
-      96: 'Thunderstorm with slight hail',
-      99: 'Thunderstorm with heavy hail'
-    };
-    return descriptions[code] || 'Unknown conditions';
-  }
-
-  function getCompassDirection(degrees) {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    return directions[Math.round(degrees / 45) % directions.length];
-  }
-
-  function renderWeatherForecast(data) {
-    const hourly = data.hourly;
-    const requiredFields = [
-      'time',
-      'temperature_2m',
-      'rain',
-      'wind_speed_120m',
-      'pressure_msl',
-      'weather_code',
-      'wind_direction_10m'
-    ];
-    if (!hourly || requiredFields.some((field) => !Array.isArray(hourly[field]))) {
-      throw new Error('Weather provider returned an unexpected forecast format.');
-    }
-
-    const sampleCount = Math.min(...requiredFields.map((field) => hourly[field].length));
-    if (sampleCount === 0) {
-      throw new Error('Weather provider returned no hourly forecast values.');
-    }
-
-    const now = Date.now() / 1000;
-    let forecastIndex = 0;
-    for (let index = 0; index < sampleCount; index++) {
-      const timestamp = Number(hourly.time[index]);
-      if (Number.isFinite(timestamp) && timestamp <= now) forecastIndex = index;
-      if (Number.isFinite(timestamp) && timestamp >= now) {
-        forecastIndex = index;
-        break;
-      }
-    }
-
-    const values = requiredFields.slice(1).map((field) => Number(hourly[field][forecastIndex]));
-    if (values.some((value) => !Number.isFinite(value))) {
-      throw new Error('Weather provider returned invalid values for the selected forecast hour.');
-    }
-
-    const [temperature, rain, windSpeed, pressure, weatherCode, windDirection] = values;
-    const forecastTimestamp = Number(hourly.time[forecastIndex]);
-    if (!Number.isFinite(forecastTimestamp)) {
-      throw new Error('Weather provider returned an invalid forecast time.');
-    }
-
-    weatherTemperature.textContent = `${temperature.toFixed(1)} °C`;
-    weatherDescription.textContent = getWeatherDescription(weatherCode);
-    weatherRain.textContent = `${rain.toFixed(1)} mm`;
-    weatherWind.textContent = `${windSpeed.toFixed(1)} km/h`;
-    weatherWindDirection.textContent = `${getCompassDirection(windDirection)} (${Math.round(windDirection)}° at 10 m)`;
-    weatherPressure.textContent = `${pressure.toFixed(0)} hPa`;
-    weatherForecastTime.textContent = `Forecast for ${new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Berlin'
-    }).format(new Date(forecastTimestamp * 1000))}`;
-  }
-
-  async function loadWeatherForecast() {
-    if (weatherRefreshBtn.disabled) return;
-
-    const params = new URLSearchParams({
-      latitude: '52.52',
-      longitude: '13.41',
-      hourly: 'temperature_2m,rain,wind_speed_120m,pressure_msl,weather_code,wind_direction_10m',
-      timezone: 'GMT',
-      timeformat: 'unixtime',
-      forecast_days: '3'
-    });
-
-    weatherRefreshBtn.disabled = true;
-    weatherStatus.textContent = 'Loading forecast…';
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
-
-    try {
-      const response = await fetch(`${WEATHER_API_URL}?${params}`, { signal: controller.signal });
-      if (!response.ok) {
-        throw new Error(`Weather service returned HTTP ${response.status}.`);
-      }
-      const data = await response.json();
-      renderWeatherForecast(data);
-      weatherStatus.textContent = `Updated ${new Intl.DateTimeFormat(undefined, {
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date())}`;
-    } catch (error) {
-      const detail = error.name === 'AbortError'
-        ? 'The request timed out. Try again.'
-        : error.message || 'Check your internet connection and try again.';
-      weatherStatus.textContent = `Forecast unavailable: ${detail}`;
-    } finally {
-      window.clearTimeout(timeoutId);
-      weatherRefreshBtn.disabled = false;
-    }
-  }
 
   // Probability bars
   const probH0 = document.getElementById('probH0');
@@ -483,6 +354,13 @@
   const attributionContent = document.getElementById('attributionContent');
   const causalGraphCanvas = document.getElementById('causalGraphCanvas');
 
+  // CAP Alert Panel
+  const btnCapJson = document.getElementById('btnCapJson');
+  const btnCapXml = document.getElementById('btnCapXml');
+  const capStatusText = document.getElementById('capStatusText');
+  const capPulseIndicator = document.getElementById('capPulseIndicator');
+  const capCodeContent = document.getElementById('capCodeContent');
+
   // Duty officer
   const dutyOfficerButton = document.getElementById('dutyOfficerButton');
   const userDecisionText = document.getElementById('userDecisionText');
@@ -490,7 +368,7 @@
   const twinScoreText = document.getElementById('twinScoreText');
   const dutyOutcomeText = document.getElementById('dutyOutcomeText');
 
-  // Filter tabs
+  // Filter tabs & speed buttons
   const filterTabs = document.querySelectorAll('.filter-tab');
   const speedBtns = document.querySelectorAll('.speed-btn');
 
@@ -534,7 +412,7 @@
     }
   }
 
-  // Calculate Shannon entropy in bits: H(P) = - sum(p * log2(p))
+  // Shannon entropy in bits: H(P) = - sum(p * log2(p))
   function calculateEntropy(probs) {
     let entropy = 0;
     probs.forEach(p => {
@@ -545,14 +423,48 @@
     return Math.max(0, entropy);
   }
 
-  // Update simulator state
-  function updateSimulationHUD() {
-    // Clock
+  // --- BACKEND INTEGRATION HELPERS ---
+  async function loadEpisodeFromApi(scenario = currentScenario) {
+    if (!window.CrisisSenseAPI) return false;
+    const scenarioKey = scenario === 'alpha' ? 'twin_cascade' : 'twin_benign';
+    try {
+      await window.CrisisSenseAPI.startEpisode(scenarioKey, 42, 1.0);
+      const timelineData = await window.CrisisSenseAPI.getTimeline();
+      if (timelineData && timelineData.timeline) {
+        liveTimelineCache = timelineData.timeline;
+        isApiOnline = true;
+        updateConnectionBadge(true);
+        return true;
+      }
+    } catch (e) {
+      console.warn('Backend unavailable, using offline demo mode:', e);
+      isApiOnline = false;
+      updateConnectionBadge(false);
+    }
+    return false;
+  }
+
+  function updateConnectionBadge(online) {
+    isApiOnline = online;
+    if (offlineBadge) {
+      offlineBadge.style.display = online ? 'none' : 'inline-block';
+    }
+    if (systemStatusText) {
+      systemStatusText.innerText = online ? 'LIVE ENGINE' : 'OFFLINE DEMO';
+    }
+    if (systemStatusIndicator) {
+      systemStatusIndicator.className = online ? 'status-indicator live' : 'status-indicator offline';
+    }
+  }
+
+  // --- HUD UPDATE DISPATCHER ---
+  async function updateSimulationHUD() {
+    // Clock formatting
     const formattedMin = currentMinute < 10 ? `0${currentMinute}` : `${currentMinute}`;
     clockDisplay.innerText = `00:${formattedMin}`;
     currentMinuteNum.innerText = currentMinute;
 
-    // Timeline scrubber nodes
+    // Timeline scrubber nodes progress
     const pct = (currentMinute / 10) * 100;
     timelineProgress.style.width = `${pct}%`;
 
@@ -567,41 +479,29 @@
       }
     });
 
-    // Spectrum steps highlight
+    // Clear active spectrum step
     const steps = document.querySelectorAll('.spectrum-step');
     steps.forEach(st => st.classList.remove('active'));
 
-    // Retrieve belief trajectory for this scenario
-    const traj = currentScenario === 'alpha' ? BELIEF_TRAJECTORY_ALPHA : BELIEF_TRAJECTORY_BETA;
-    const curBelief = traj[currentMinute];
+    // Try to retrieve live data from backend cache
+    const livePayload = isApiOnline ? (liveTimelineCache[currentMinute] || liveTimelineCache[String(currentMinute)]) : null;
 
-    let pNoise = curBelief.p[0];
-    let pSensor = curBelief.p[1];
-    let pIso = curBelief.p[2];
-    let pCrisis = curBelief.p[3];
-
-    // Modify beliefs if adversity toggles are active
-    if (flagGatewayDrop && currentMinute >= 4) {
-      pSensor = Math.min(0.95, pSensor + 0.22);
-      pCrisis = Math.max(0.01, pCrisis - 0.12);
-      const rem = 1 - (pSensor + pCrisis);
-      pNoise = rem * 0.6;
-      pIso = rem * 0.4;
+    if (livePayload) {
+      renderLivePayload(livePayload);
+    } else {
+      renderFallbackPayload();
     }
-    if (flagRumorMimic && currentMinute >= 6) {
-      // Astroturfed mimic attempt: slight rise in noise/isolated, flagged by filter
-      pNoise = Math.min(0.65, pNoise + 0.15);
-      pCrisis = Math.max(0.02, pCrisis - 0.08);
-    }
+  }
 
-    // Normalize
-    const sum = pNoise + pSensor + pIso + pCrisis;
-    pNoise = pNoise / sum;
-    pSensor = pSensor / sum;
-    pIso = pIso / sum;
-    pCrisis = pCrisis / sum;
+  // Render using live Python engine MinuteStatePayload
+  function renderLivePayload(payload) {
+    const probs = payload.probabilities || { H0: 0.6, H1: 0.15, H2: 0.15, H3: 0.10 };
+    const pNoise = Number(probs.H0 || 0);
+    const pSensor = Number(probs.H1 || 0);
+    const pIso = Number(probs.H2 || 0);
+    const pCrisis = Number(probs.H3 || 0);
 
-    // Render Probability Bars
+    // Probability Bars
     probH0.innerText = `${(pNoise * 100).toFixed(1)}%`;
     probH1.innerText = `${(pSensor * 100).toFixed(1)}%`;
     probH2.innerText = `${(pIso * 100).toFixed(1)}%`;
@@ -618,22 +518,113 @@
       h > 1.6 ? 'High Uncertainty' : h > 0.8 ? 'Solidifying Evidence' : 'Decisive State'
     })`;
 
-    // Action Policy with Hysteresis
-    let action = curBelief.action;
-    let rationale = curBelief.rat;
+    // Action Policy
+    const action = payload.recommended_action || 'WATCH';
+    const rationale = payload.explanation_summary || 'Multi-source municipal telemetry processed.';
 
-    // Apply strict Hysteresis check: never drop from ALERT/ESCALATE to WATCH without verified multi-sensor retraction
     actionStateBadge.className = `state-badge ${action.toLowerCase()}`;
     actionStateBadge.innerText = action;
     actionRationale.innerText = rationale;
 
-    // Highlight spectrum step
     const targetSpectrum = document.querySelector(`.spectrum-step[data-action="${action}"]`);
     if (targetSpectrum) targetSpectrum.classList.add('active');
 
     // Hysteresis indicator status
     if (action === 'ESCALATE') {
-      hysteresisStatus.innerText = 'LOCKED (MONOTONIC ESCALATION ACTIVE) — Irreversible Public Sirens';
+      hysteresisStatus.innerText = 'LOCKED (MONOTONIC ESCALATION ACTIVE) — Irreversible Public Sirens Dispatched';
+      hysteresisStatus.parentElement.style.color = '#ff6b6b';
+    } else if (action === 'ALERT') {
+      hysteresisStatus.innerText = 'ACTIVE GUARD — Dual-Threshold Schmitt Trigger Active (Anti-Flip-Flop)';
+      hysteresisStatus.parentElement.style.color = '#f59e0b';
+    } else {
+      hysteresisStatus.innerText = 'NORMAL WATCH / STAGING BUFFER';
+      hysteresisStatus.parentElement.style.color = '#06b6d4';
+    }
+
+    // Tradeoff meters
+    const damagePct = Math.round(pCrisis * 100);
+    const fatigue = payload.fatigue_level || 0.0;
+    const cryWolfAvoidance = Math.max(5, Math.min(95, Math.round((1 - fatigue) * 100)));
+    gaugeDamageAvoided.style.width = `${damagePct}%`;
+    gaugeCryWolf.style.width = `${cryWolfAvoidance}%`;
+    valDamage.innerText = `Lead Time Value: ${action === 'ESCALATE' ? '+8m Saved' : damagePct > 50 ? 'Critical' : 'Safe'}`;
+    valCryWolf.innerText = `Cry-Wolf Risk: ${action === 'ESCALATE' ? 'Committed' : cryWolfAvoidance > 60 ? 'High Avoidance' : 'Low'}`;
+
+    // Render Stream Events from live payload
+    renderLiveEvents();
+
+    // Render Foresight Forecasts from live payload
+    renderLiveForesight(payload.forecasts || []);
+
+    // Render Attribution Drawer
+    renderLiveAttribution(payload);
+
+    // Update Causal Canvas
+    drawCausalGraph(payload);
+
+    // Render CAP Alert
+    renderCapAlert(payload.cap_alert);
+
+    // Duty officer scoreboard sync
+    machinePolicyText.innerText = action;
+    evaluateDutyOfficerScore(action);
+  }
+
+  // Render using fallback offline trajectory
+  function renderFallbackPayload() {
+    const traj = currentScenario === 'alpha' ? FALLBACK_BELIEF_ALPHA : FALLBACK_BELIEF_BETA;
+    const curBelief = traj[Math.min(currentMinute, traj.length - 1)];
+
+    let pNoise = curBelief.p[0];
+    let pSensor = curBelief.p[1];
+    let pIso = curBelief.p[2];
+    let pCrisis = curBelief.p[3];
+
+    if (flagGatewayDrop && currentMinute >= 4) {
+      pSensor = Math.min(0.95, pSensor + 0.22);
+      pCrisis = Math.max(0.01, pCrisis - 0.12);
+      const rem = 1 - (pSensor + pCrisis);
+      pNoise = rem * 0.6;
+      pIso = rem * 0.4;
+    }
+    if (flagRumorMimic && currentMinute >= 6) {
+      pNoise = Math.min(0.65, pNoise + 0.15);
+      pCrisis = Math.max(0.02, pCrisis - 0.08);
+    }
+
+    const sum = pNoise + pSensor + pIso + pCrisis;
+    pNoise = pNoise / sum;
+    pSensor = pSensor / sum;
+    pIso = pIso / sum;
+    pCrisis = pCrisis / sum;
+
+    probH0.innerText = `${(pNoise * 100).toFixed(1)}%`;
+    probH1.innerText = `${(pSensor * 100).toFixed(1)}%`;
+    probH2.innerText = `${(pIso * 100).toFixed(1)}%`;
+    probH3.innerText = `${(pCrisis * 100).toFixed(1)}%`;
+
+    barH0.style.width = `${(pNoise * 100).toFixed(1)}%`;
+    barH1.style.width = `${(pSensor * 100).toFixed(1)}%`;
+    barH2.style.width = `${(pIso * 100).toFixed(1)}%`;
+    barH3.style.width = `${(pCrisis * 100).toFixed(1)}%`;
+
+    const h = calculateEntropy([pNoise, pSensor, pIso, pCrisis]);
+    entropyMetric.innerHTML = `H(P) = <strong>${h.toFixed(2)} bits</strong> (${
+      h > 1.6 ? 'High Uncertainty' : h > 0.8 ? 'Solidifying Evidence' : 'Decisive State'
+    })`;
+
+    let action = curBelief.action;
+    let rationale = curBelief.rat;
+
+    actionStateBadge.className = `state-badge ${action.toLowerCase()}`;
+    actionStateBadge.innerText = action;
+    actionRationale.innerText = rationale;
+
+    const targetSpectrum = document.querySelector(`.spectrum-step[data-action="${action}"]`);
+    if (targetSpectrum) targetSpectrum.classList.add('active');
+
+    if (action === 'ESCALATE') {
+      hysteresisStatus.innerText = 'LOCKED (MONOTONIC ESCALATION ACTIVE) — Irreversible Public Sirens Dispatched';
       hysteresisStatus.parentElement.style.color = '#ff6b6b';
     } else if (action === 'ALERT') {
       hysteresisStatus.innerText = 'ACTIVE GUARD — Dual-Threshold Schmitt Trigger Active';
@@ -643,7 +634,6 @@
       hysteresisStatus.parentElement.style.color = '#06b6d4';
     }
 
-    // Tradeoff meters
     const damagePct = Math.round(pCrisis * 100);
     const cryWolfPct = Math.max(5, 100 - damagePct);
     gaugeDamageAvoided.style.width = `${damagePct}%`;
@@ -651,42 +641,100 @@
     valDamage.innerText = `Lead Time Value: ${action === 'ESCALATE' ? '+8m Saved' : damagePct > 50 ? 'Critical' : 'Safe'}`;
     valCryWolf.innerText = `Cry-Wolf Risk: ${action === 'ESCALATE' ? 'Committed' : cryWolfPct > 60 ? 'High Avoidance' : 'Low'}`;
 
-    // Render Stream Events for current minute
-    renderStreamEvents();
+    renderFallbackEvents();
+    renderFallbackForesight();
+    renderFallbackAttribution();
+    drawCausalGraph(null);
+    renderCapAlert(null);
 
-    // Render Foresight Forecasts
-    renderForesight();
-
-    // Render Attribution Drawer
-    renderAttribution();
-
-    // Update Causal Canvas
-    drawCausalGraph();
-
-    // Duty officer scoreboard sync
     machinePolicyText.innerText = action;
-    evaluateDutyOfficerScore();
+    evaluateDutyOfficerScore(action);
   }
 
-  // Render events up to current minute
-  function renderStreamEvents() {
-    let pool = [];
+  // --- EVENT RENDERING ---
+  function getEventTypeCategory(sourceType) {
+    if (!sourceType) return 'sensor';
+    const s = sourceType.toLowerCase();
+    if (s.includes('dispatch') || s.includes('line') || s.includes('emergency')) return 'dispatch';
+    if (s.includes('hospital')) return 'hospital';
+    if (s.includes('citizen') || s.includes('social')) return 'social';
+    return 'sensor';
+  }
 
-    // Prefix events up to current minute (min 0 to min 7)
-    for (let i = 0; i <= Math.min(currentMinute, 7); i++) {
-      pool.push(IDENTICAL_PREFIX_EVENTS[i]);
+  function formatEventText(ev) {
+    const k = ev.kind || '';
+    const loc = ev.location ? `in ${ev.location.replace('_', ' ')}` : '';
+    const val = typeof ev.value === 'number' ? ev.value.toFixed(2) : '';
+
+    if (k === 'drain_anomaly') return `Hydraulic drainage runoff differential pressure anomaly (${val}) logged ${loc}.`;
+    if (k === 'traffic_slow') return `Arterial arterial vehicle velocity deceleration (${val} congestion index) observed ${loc}.`;
+    if (k === 'call_surge') return `Emergency dispatch incoming queue spike (${val} calls/min) registered ${loc}.`;
+    if (k === 'dispatch_incident') return `Verified CAD incident dispatch: multi-unit emergency deployment dispatched ${loc}.`;
+    if (k === 'hospital_arrivals') return `Hospital mass trauma arrival surge (${val} admission surge) verified ${loc}.`;
+    if (k === 'citizen_report') return `Citizen surface inundation report logged ${loc} (telemetry anomaly score: ${val}).`;
+    if (k === 'camera_flag') return `Optical transit camera vision model flagged surface pooling / hazard ${loc}.`;
+    if (k === 'rain_gauge') return `Meteorological rain gauge confirmed intense precipitation (${val} mm/h) ${loc}.`;
+    if (k === 'gateway_heartbeat') return `Gateway controller heartbeat signal disconnect recorded ${loc}.`;
+    if (k === 'social_post') return `Social sentiment anomaly cluster detected ${loc}: viral flood post flagged.`;
+    return `Telemetry event [${k}] observed ${loc} with intensity metric ${val}.`;
+  }
+
+  function renderLiveEvents() {
+    let pool = [];
+    for (let m = 0; m <= currentMinute; m++) {
+      const p = liveTimelineCache[m] || liveTimelineCache[String(m)];
+      if (p && p.events && p.events.length > 0) {
+        p.events.forEach(ev => {
+          const minVal = Math.floor(ev.event_time / 60);
+          const secVal = ev.event_time % 60;
+          const ts = `00:${minVal < 10 ? '0' + minVal : minVal}:${secVal < 10 ? '0' + secVal : secVal}`;
+          const type = getEventTypeCategory(ev.source_type);
+          const badges = [];
+
+          if (ev.kind) badges.push(ev.kind.replace('_', ' ').toUpperCase());
+          if (ev.retracts) badges.push('RETRACTION');
+          if (ev.gateway_id) badges.push(ev.gateway_id.toUpperCase());
+
+          pool.push({
+            minute: minVal,
+            timestamp: ts,
+            type: type,
+            source: (ev.source_type || 'TELEMETRY').replace('_', ' ').toUpperCase(),
+            node: ev.source_id || 'sensor_node',
+            text: formatEventText(ev),
+            badges: badges
+          });
+        });
+      }
     }
 
-    // Post events if currentMinute >= 8
+    if (pool.length === 0) {
+      pool.push({
+        minute: 0,
+        timestamp: '00:00',
+        type: 'sensor',
+        source: 'CIVIC_MONITORING_GRID',
+        node: 'metropolis_central_hub',
+        text: 'Baseline municipal telemetry streaming. Normal flow across all 12 urban sectors.',
+        badges: ['NORMAL']
+      });
+    }
+
+    renderEventCards(pool);
+  }
+
+  function renderFallbackEvents() {
+    let pool = [];
+    for (let i = 0; i <= Math.min(currentMinute, 7); i++) {
+      pool.push(FALLBACK_PREFIX_EVENTS[i]);
+    }
     if (currentMinute >= 8) {
-      const postPool = currentScenario === 'alpha' ? SCENARIO_ALPHA_POST : SCENARIO_BETA_POST;
+      const postPool = currentScenario === 'alpha' ? FALLBACK_ALPHA_POST : FALLBACK_BETA_POST;
       for (let j = 8; j <= currentMinute; j++) {
         const postEvt = postPool.find(e => e.minute === j);
         if (postEvt) pool.push(postEvt);
       }
     }
-
-    // Inject adversity events if flags enabled
     if (flagGatewayDrop && currentMinute >= 4) {
       pool.push({
         minute: 4,
@@ -694,11 +742,10 @@
         type: 'sensor',
         source: 'GATEWAY_HEALTH_MONITOR',
         node: 'gw_telecom_north_rack',
-        text: '[INJECTED ADVERSITY] Gateway GW-4 dropped 100 downstream sensors. Causal engine isolates common-cause power fault.',
+        text: '[INJECTED ADVERSITY] Gateway GW-1 dropped 100 downstream sensors. Causal engine isolates common-cause power fault.',
         badges: ['CORRELATED FAIL', 'CUTOUT']
       });
     }
-
     if (flagRumorMimic && currentMinute >= 6) {
       pool.push({
         minute: 6,
@@ -710,9 +757,11 @@
         badges: ['RUMOR WAVE', 'MIMIC FILTERED']
       });
     }
+    renderEventCards(pool);
+  }
 
-    // Filter by active tab
-    const filtered = pool.filter(evt => {
+  function renderEventCards(eventsList) {
+    const filtered = eventsList.filter(evt => {
       if (activeFilter === 'all') return true;
       return evt.type === activeFilter;
     });
@@ -720,7 +769,6 @@
     streamEventCount.innerText = `${filtered.length} EVENTS INGESTED`;
     streamEventList.innerHTML = '';
 
-    // Render in descending order (latest on top)
     const reversed = [...filtered].reverse();
     reversed.forEach(evt => {
       const card = document.createElement('div');
@@ -730,8 +778,8 @@
       if (evt.badges && evt.badges.length > 0) {
         evt.badges.forEach(b => {
           let bClass = 'tag-badge';
-          if (b.includes('CUTOUT') || b.includes('CRISIS') || b.includes('ALERT')) bClass += ' badge-cutout';
-          else if (b.includes('MIMIC') || b.includes('OUT-OF-ORDER')) bClass += ' badge-delayed';
+          if (b.includes('CUTOUT') || b.includes('CRISIS') || b.includes('ALERT') || b.includes('GRID')) bClass += ' badge-cutout';
+          else if (b.includes('MIMIC') || b.includes('OUT-OF-ORDER') || b.includes('RETRACTION')) bClass += ' badge-delayed';
           else bClass += ' badge-mimic';
           badgesHtml += `<span class="${bClass}">${b}</span>`;
         });
@@ -749,11 +797,35 @@
     });
   }
 
-  // Render Foresight predictions
-  function renderForesight() {
-    const list = getForesightPredictions(currentMinute, currentScenario);
+  // --- FORESIGHT RENDERING ---
+  function renderLiveForesight(forecasts) {
     foresightList.innerHTML = '';
+    if (!forecasts || forecasts.length === 0) {
+      foresightList.innerHTML = `
+        <div class="foresight-item">
+          <span class="forecast-target">No imminent cascading escalation detected within 15-minute horizon</span>
+          <span class="forecast-window">00:00 &ndash; 00:15 [Safe]</span>
+        </div>
+      `;
+      return;
+    }
 
+    forecasts.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'foresight-item';
+      const confStr = `${Math.round((f.probability || 0) * 100)}%`;
+      const winStr = `00:${String(f.window_start_min).padStart(2, '0')} &ndash; 00:${String(f.window_end_min).padStart(2, '0')}`;
+      row.innerHTML = `
+        <span class="forecast-target">${f.description || f.event_kind} (${f.zone})</span>
+        <span class="forecast-window">${winStr} [${confStr}]</span>
+      `;
+      foresightList.appendChild(row);
+    });
+  }
+
+  function renderFallbackForesight() {
+    const list = getFallbackForesightPredictions(currentMinute, currentScenario);
+    foresightList.innerHTML = '';
     list.forEach(item => {
       const row = document.createElement('div');
       row.className = 'foresight-item';
@@ -765,15 +837,45 @@
     });
   }
 
-  // Render "Why did the engine change its mind?"
-  function renderAttribution() {
+  // --- ATTRIBUTION RENDERING ---
+  function renderLiveAttribution(payload) {
+    let html = `
+      <p class="attr-step"><span class="time-pill">00:${String(currentMinute).padStart(2, '0')}</span> <strong>Bayesian State:</strong> ${payload.explanation_summary || 'Normal telemetry.'}</p>
+    `;
+
+    if (payload.top_drivers && payload.top_drivers.length > 0) {
+      html += `<p class="attr-step"><span class="time-pill">DRIVERS</span> `;
+      payload.top_drivers.forEach(d => {
+        html += `<span class="driver-tag"><strong>${d.source || d.factor}:</strong> LLR = ${typeof d.weight === 'number' ? (d.weight > 0 ? '+' : '') + d.weight.toFixed(2) : d.weight}</span> `;
+      });
+      html += `</p>`;
+    }
+
+    if (payload.discounted_items && payload.discounted_items.length > 0) {
+      html += `<p class="attr-step"><span class="time-pill">DISCOUNTED</span> `;
+      payload.discounted_items.forEach(item => {
+        html += `<span class="discount-tag">${item}</span> `;
+      });
+      html += `</p>`;
+    }
+
+    if (payload.what_would_change_mind) {
+      html += `
+        <p class="attr-current"><strong>Mind-Changer Trigger:</strong> ${payload.what_would_change_mind}</p>
+      `;
+    }
+
+    attributionContent.innerHTML = html;
+  }
+
+  function renderFallbackAttribution() {
     let html = '';
     if (currentMinute === 0) {
       html = `<p class="attr-step"><span class="time-pill">00:00</span> Flat rainfall baseline across 12 sectors. Prior unshifted. Cost of early alert far exceeds value.</p>`;
     } else if (currentMinute <= 3) {
       html = `
         <p class="attr-step"><span class="time-pill">00:01</span> Runoff gradient matched seasonal storm prior (+14% flow).</p>
-        <p class="attr-step"><span class="time-pill">00:03</span> Drainage anomalies isolated to culvert S4-B. <em>Changed policy to PREPARE</em> because prepositioning standby pumps costs only \$40k while buying 5 mins of insurance.</p>
+        <p class="attr-step"><span class="time-pill">00:03</span> Drainage anomalies isolated to culvert S4-B. <em>Changed policy to PREPARE</em> because prepositioning standby pumps costs only $40k while buying 5 mins of insurance.</p>
       `;
     } else if (currentMinute <= 7) {
       html = `
@@ -789,15 +891,71 @@
       } else {
         html = `
           <p class="attr-step"><span class="time-pill">00:08</span> <strong>CRITICAL MIND SHIFT:</strong> Spatial correlation check revealed 80 dropped sensors all route through Gateway Trunk North. Classified as <em>H₁ (ISP Fiber Cut)</em>, not physical flood!</p>
-          <p class="attr-step"><span class="time-pill">00:09</span> Epidemiological trace cross-verified hospital surge as pediatric flu. <em>P(H₃) dropped to 4%</em>. Successfully prevented \$2.5M municipal false alarm panic.</p>
+          <p class="attr-step"><span class="time-pill">00:09</span> Epidemiological trace cross-verified hospital surge as pediatric flu. <em>P(H₃) dropped to 4%</em>. Successfully prevented $2.5M municipal false alarm panic.</p>
         `;
       }
     }
     attributionContent.innerHTML = html;
   }
 
-  // Canvas Causal Graph Renderer
-  function drawCausalGraph() {
+  // --- CAP v1.2 ALERT PANEL ---
+  async function renderCapAlert(alertObj) {
+    if (!capCodeContent) return;
+
+    if (!alertObj && isApiOnline && window.CrisisSenseAPI) {
+      try {
+        const resp = await window.CrisisSenseAPI.getCapAlert(activeCapFormat);
+        if (resp && (resp.content || resp.status)) {
+          if (resp.content) {
+            displayCapContent(resp.content, activeCapFormat);
+            return;
+          }
+        }
+      } catch (e) {
+        // Fall through
+      }
+    }
+
+    if (alertObj) {
+      if (activeCapFormat === 'json') {
+        displayCapContent(JSON.stringify(alertObj, null, 2), 'json');
+      } else if (window.CrisisSenseAPI && isApiOnline) {
+        try {
+          const xml = await window.CrisisSenseAPI.getCapAlert('xml');
+          displayCapContent(xml, 'xml');
+        } catch (e) {
+          displayCapContent(JSON.stringify(alertObj, null, 2), 'json');
+        }
+      }
+    } else {
+      capStatusText.innerText = `System in ${actionStateBadge.innerText} state — Alert dispatch staged (Exercise Only).`;
+      capPulseIndicator.style.background = '#10b981';
+      capPulseIndicator.style.boxShadow = '0 0 8px rgba(16, 185, 129, 0.6)';
+      capCodeContent.innerText = `// Common Alerting Protocol (CAP v1.2) Digital Dispatch Feed\n// Standard: OASIS Standard CAP-V1.2 / WMO 2026\n// Mandatory Safety Rule: status="Exercise"\n// Current State: ${actionStateBadge.innerText} — Awaiting ESCALATE policy threshold crossing to dispatch digital sirens...`;
+    }
+  }
+
+  function displayCapContent(content, format) {
+    const isEscalated = actionStateBadge.innerText === 'ESCALATE';
+    if (isEscalated) {
+      capStatusText.innerText = 'CAP v1.2 DISPATCH ACTIVE — Standardized Digital Alert Broadcast (EXERCISE)';
+      capPulseIndicator.style.background = '#ef4444';
+      capPulseIndicator.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.8)';
+    } else {
+      capStatusText.innerText = `System in ${actionStateBadge.innerText} state — Staged Exercise Alert.`;
+      capPulseIndicator.style.background = '#f59e0b';
+      capPulseIndicator.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.6)';
+    }
+
+    if (typeof content === 'object') {
+      capCodeContent.innerText = JSON.stringify(content, null, 2);
+    } else {
+      capCodeContent.innerText = content;
+    }
+  }
+
+  // --- CANVAS CAUSAL GRAPH RENDERER ---
+  function drawCausalGraph(livePayload) {
     if (!causalGraphCanvas) return;
     const ctx = causalGraphCanvas.getContext('2d');
     const w = causalGraphCanvas.width;
@@ -805,27 +963,35 @@
 
     ctx.clearRect(0, 0, w, h);
 
-    // Nodes in causal chain
+    const nuisances = livePayload ? (livePayload.nuisance_posteriors || {}) : {};
+    const pH3 = livePayload ? (Number(livePayload.probabilities?.H3) || 0) : 0;
+    const isCascade = currentScenario === 'alpha';
+
+    const rainActive = currentMinute >= 0;
+    const drainActive = currentMinute >= 3;
+    const trafficActive = currentMinute >= 5;
+    const gridActive = (pH3 > 0.50 || (isCascade && currentMinute >= 8));
+    const telecomActive = ((nuisances.G1 > 0.5 || (!isCascade && currentMinute >= 8)));
+    const leveeActive = (actionStateBadge.innerText === 'ESCALATE' || (isCascade && currentMinute >= 9));
+
     const nodes = [
-      { id: 'rain', label: 'Heavy Rain', x: 45, y: 50, activeMin: 0 },
-      { id: 'drain', label: 'Drainage Anomaly', x: 145, y: 35, activeMin: 3 },
-      { id: 'traffic', label: 'Traffic Slow', x: 145, y: 110, activeMin: 5 },
-      { id: 'grid', label: 'Substation Trip', x: 250, y: 40, activeMin: 8, alphaOnly: true },
-      { id: 'telecom', label: 'Fiber Cut (H₁)', x: 250, y: 115, activeMin: 8, betaOnly: true },
-      { id: 'levee', label: 'Cascade / Siren', x: 345, y: 75, activeMin: 9, alphaOnly: true }
+      { id: 'rain', label: 'Heavy Rain', x: 45, y: 50, active: rainActive },
+      { id: 'drain', label: 'Drainage Anomaly', x: 145, y: 35, active: drainActive },
+      { id: 'traffic', label: 'Traffic Slow', x: 145, y: 110, active: trafficActive },
+      { id: 'grid', label: 'Substation Trip', x: 250, y: 40, active: gridActive, alphaOnly: true },
+      { id: 'telecom', label: 'Fiber Cut (H₁)', x: 250, y: 115, active: telecomActive, betaOnly: true },
+      { id: 'levee', label: 'Cascade / Siren', x: 345, y: 75, active: leveeActive, alphaOnly: true }
     ];
 
-    // Edges (from -> to)
     const edges = [
-      { from: 'rain', to: 'drain' },
-      { from: 'rain', to: 'traffic' },
-      { from: 'drain', to: 'grid', alphaOnly: true },
-      { from: 'drain', to: 'telecom', betaOnly: true },
-      { from: 'traffic', to: 'grid', alphaOnly: true },
-      { from: 'grid', to: 'levee', alphaOnly: true }
+      { from: 'rain', to: 'drain', active: rainActive && drainActive },
+      { from: 'rain', to: 'traffic', active: rainActive && trafficActive },
+      { from: 'drain', to: 'grid', active: drainActive && gridActive, alphaOnly: true },
+      { from: 'drain', to: 'telecom', active: drainActive && telecomActive, betaOnly: true },
+      { from: 'traffic', to: 'grid', active: trafficActive && gridActive, alphaOnly: true },
+      { from: 'grid', to: 'levee', active: gridActive && leveeActive, alphaOnly: true }
     ];
 
-    // Draw Edges
     edges.forEach(e => {
       if (e.alphaOnly && currentScenario !== 'alpha') return;
       if (e.betaOnly && currentScenario !== 'beta') return;
@@ -834,18 +1000,17 @@
       const toNode = nodes.find(n => n.id === e.to);
       if (!fromNode || !toNode) return;
 
-      const isFlowing = currentMinute >= toNode.activeMin;
+      const isFlowing = e.active;
 
       ctx.beginPath();
       ctx.moveTo(fromNode.x, fromNode.y);
       ctx.lineTo(toNode.x, toNode.y);
       ctx.strokeStyle = isFlowing
-        ? (currentScenario === 'alpha' && toNode.activeMin >= 8 ? '#dc2626' : '#2563eb')
+        ? (currentScenario === 'alpha' && toNode.y <= 75 ? '#dc2626' : '#2563eb')
         : '#cbd5e1';
       ctx.lineWidth = isFlowing ? 2.5 : 1.2;
       ctx.stroke();
 
-      // Flow pulse particle
       if (isFlowing) {
         const time = Date.now() / 400;
         const progress = (time % 2) / 2;
@@ -854,7 +1019,7 @@
 
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
-        ctx.fillStyle = currentScenario === 'alpha' && toNode.activeMin >= 8 ? '#dc2626' : '#2563eb';
+        ctx.fillStyle = currentScenario === 'alpha' && toNode.y <= 75 ? '#dc2626' : '#2563eb';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 6;
         ctx.fill();
@@ -862,25 +1027,19 @@
       }
     });
 
-    // Draw Nodes
     nodes.forEach(n => {
       if (n.alphaOnly && currentScenario !== 'alpha') return;
       if (n.betaOnly && currentScenario !== 'beta') return;
 
-      const isActive = currentMinute >= n.activeMin;
-      const isNext = currentMinute + 1 === n.activeMin;
+      const isActive = n.active;
 
       ctx.beginPath();
       ctx.arc(n.x, n.y, 9, 0, Math.PI * 2);
 
       if (isActive) {
-        ctx.fillStyle = currentScenario === 'alpha' && n.activeMin >= 8 ? '#dc2626' : '#2563eb';
+        ctx.fillStyle = currentScenario === 'alpha' && n.id === 'levee' ? '#dc2626' : '#2563eb';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 8;
-      } else if (isNext) {
-        ctx.fillStyle = '#0284c7';
-        ctx.shadowColor = '#0284c7';
-        ctx.shadowBlur = 5;
       } else {
         ctx.fillStyle = '#f1f5f9';
         ctx.shadowBlur = 0;
@@ -892,7 +1051,6 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Label
       ctx.font = '600 10.5px "Plus Jakarta Sans", -apple-system, sans-serif';
       ctx.fillStyle = isActive ? '#0f172a' : '#64748b';
       ctx.textAlign = 'center';
@@ -900,14 +1058,14 @@
     });
   }
 
-  // Set specific simulation minute
+  // --- MINUTE NAVIGATION ---
   function setMinute(min) {
     currentMinute = Math.max(0, Math.min(10, min));
     playTickSound();
     updateSimulationHUD();
   }
 
-  // Play / Pause simulation controller
+  // --- PLAY / PAUSE CONTROLLER ---
   function togglePlay() {
     initAudio();
     isPlaying = !isPlaying;
@@ -938,8 +1096,8 @@
     }
   }
 
-  // Duty officer interactive evaluation game
-  function evaluateDutyOfficerScore() {
+  // --- DUTY OFFICER EVALUATION GAME ---
+  function evaluateDutyOfficerScore(activeMachinePolicy = 'WATCH') {
     if (userEscalatedAtMinute === null) {
       userDecisionText.innerText = 'MONITORING (WAITING)';
       twinScoreText.innerText = '--';
@@ -952,15 +1110,12 @@
     userDecisionText.innerText = `ESCALATED AT 00:0${userEscalatedAtMinute}`;
 
     if (currentScenario === 'beta') {
-      // User pressed in Beta = False alarm cried!
       twinScoreText.innerText = '-500 PTS (CRY-WOLF)';
       twinScoreText.style.color = '#ef4444';
       dutyOutcomeText.innerText = 'FAILED: Disrupted 8.4M citizens for a fiber cut + flu cluster!';
       dutyOutcomeText.style.color = '#ef4444';
     } else {
-      // Scenario Alpha: User pressed button
       if (userEscalatedAtMinute < 7) {
-        // Premature guess penalty during identical prefix!
         twinScoreText.innerText = '-350 PTS (UNJUSTIFIED)';
         twinScoreText.style.color = '#f59e0b';
         dutyOutcomeText.innerText = 'Twin Test Penalty: Escalated before evidence diverged!';
@@ -981,36 +1136,31 @@
     }
   }
 
-  // Duty officer button press handler
+  // Duty officer button press
   dutyOfficerButton.addEventListener('click', () => {
     initAudio();
     playButtonThud();
     userEscalatedAtMinute = currentMinute;
     playAlarmKlaxon();
-    evaluateDutyOfficerScore();
+    evaluateDutyOfficerScore(actionStateBadge.innerText);
     dutyOfficerButton.style.transform = 'scale(0.96)';
     setTimeout(() => {
       dutyOfficerButton.style.transform = '';
     }, 150);
   });
 
-  // Calculate Optimal Stopping Thresholds dynamically
+  // --- COST CALCULATOR (ILLUSTRATIVE MODEL) ---
   function recalculateCostThresholds() {
     const cFalseAlarm = parseFloat(inputFalseAlarm.value);
     const cDelayPerMin = parseFloat(inputDelayDamage.value);
     const cPrepare = parseFloat(inputPrepare.value);
     const priorPct = parseFloat(inputPrior.value) / 100;
 
-    // Display formatted strings
     valFalseAlarmCost.innerText = `$${(cFalseAlarm / 1000000).toFixed(2)}M`;
     valDelayDamageCost.innerText = `$${(cDelayPerMin / 1000000).toFixed(2)}M / min`;
     valPrepareCost.innerText = `$${(cPrepare / 1000).toFixed(0)}k`;
     valPriorProb.innerText = `${(priorPct * 100).toFixed(1)}%`;
 
-    // Mathematical Optimal Stopping Frontiers:
-    // P*(Prepare) ~ cPrepare / (cDelayPerMin * 0.35 + cFalseAlarm * 0.05)
-    // P*(Alert)   ~ (cPrepare * 3) / (cDelayPerMin * 0.8)
-    // P*(Escalate)~ cFalseAlarm / (cFalseAlarm + cDelayPerMin * 3.5)
     let pPrep = Math.min(0.25, Math.max(0.05, (cPrepare * 3.5) / cDelayPerMin));
     let pEsc = Math.min(0.95, Math.max(0.45, cFalseAlarm / (cFalseAlarm + cDelayPerMin * 2.8)));
     let pAlert = (pPrep + pEsc) / 2;
@@ -1019,13 +1169,99 @@
     threshAlert.innerText = `P(H₃) ≥ ${(pAlert * 100).toFixed(1)}%`;
     threshEscalate.innerText = `P(H₃) ≥ ${(pEsc * 100).toFixed(1)}%`;
 
-    // Update dynamic text
     calcDynamicInsight.innerHTML = `
       With Cry-Wolf false alarm penalty at <strong>$${(cFalseAlarm / 1000000).toFixed(1)}M</strong> and delay damage at <strong>$${(cDelayPerMin / 1000000).toFixed(1)}M/min</strong>, the optimal stopping frontier demands staying calm through high entropy. Prepare triggers at <strong>${(pPrep * 100).toFixed(0)}%</strong>, but Escalate firmly waits until <strong>${(pEsc * 100).toFixed(0)}%</strong> certainty to protect public trust.
     `;
   }
 
-  // Schema Tab Switcher
+  // --- OPEN-METEO WEATHER PANEL ---
+  function getWeatherDescription(code) {
+    const descriptions = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle',
+      55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+      80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
+    };
+    return descriptions[code] || 'Unknown conditions';
+  }
+
+  function getCompassDirection(degrees) {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(degrees / 45) % directions.length];
+  }
+
+  function renderWeatherForecast(data) {
+    const hourly = data.hourly;
+    const requiredFields = ['time', 'temperature_2m', 'rain', 'wind_speed_120m', 'pressure_msl', 'weather_code', 'wind_direction_10m'];
+    if (!hourly || requiredFields.some((field) => !Array.isArray(hourly[field]))) {
+      throw new Error('Weather provider returned an unexpected forecast format.');
+    }
+
+    const sampleCount = Math.min(...requiredFields.map((field) => hourly[field].length));
+    if (sampleCount === 0) return;
+
+    const now = Date.now() / 1000;
+    let forecastIndex = 0;
+    for (let index = 0; index < sampleCount; index++) {
+      const timestamp = Number(hourly.time[index]);
+      if (Number.isFinite(timestamp) && timestamp <= now) forecastIndex = index;
+      if (Number.isFinite(timestamp) && timestamp >= now) {
+        forecastIndex = index;
+        break;
+      }
+    }
+
+    const values = requiredFields.slice(1).map((field) => Number(hourly[field][forecastIndex]));
+    const [temperature, rain, windSpeed, pressure, weatherCode, windDirection] = values;
+    const forecastTimestamp = Number(hourly.time[forecastIndex]);
+
+    weatherTemperature.textContent = `${temperature.toFixed(1)} °C`;
+    weatherDescription.textContent = getWeatherDescription(weatherCode);
+    weatherRain.textContent = `${rain.toFixed(1)} mm`;
+    weatherWind.textContent = `${windSpeed.toFixed(1)} km/h`;
+    weatherWindDirection.textContent = `${getCompassDirection(windDirection)} (${Math.round(windDirection)}° at 10 m)`;
+    weatherPressure.textContent = `${pressure.toFixed(0)} hPa`;
+    weatherForecastTime.textContent = `Forecast for ${new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
+    }).format(new Date(forecastTimestamp * 1000))}`;
+  }
+
+  async function loadWeatherForecast() {
+    if (weatherRefreshBtn.disabled) return;
+    const params = new URLSearchParams({
+      latitude: '52.52',
+      longitude: '13.41',
+      hourly: 'temperature_2m,rain,wind_speed_120m,pressure_msl,weather_code,wind_direction_10m',
+      timezone: 'GMT',
+      timeformat: 'unixtime',
+      forecast_days: '3'
+    });
+
+    weatherRefreshBtn.disabled = true;
+    weatherStatus.textContent = 'Loading forecast…';
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(`${WEATHER_API_URL}?${params}`, { signal: controller.signal });
+      if (!response.ok) throw new Error(`Weather service returned HTTP ${response.status}.`);
+      const data = await response.json();
+      renderWeatherForecast(data);
+      weatherStatus.textContent = `Updated ${new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date())}`;
+    } catch (error) {
+      const detail = error.name === 'AbortError' ? 'The request timed out.' : error.message || 'Check connection.';
+      weatherStatus.textContent = `Forecast unavailable: ${detail}`;
+    } finally {
+      window.clearTimeout(timeoutId);
+      weatherRefreshBtn.disabled = false;
+    }
+  }
+
+  // --- SCHEMA TABS ---
   const SCHEMAS = {
     ingest: `{
   "$schema": "https://crisissense.ai/schemas/v1/event-stream.json",
@@ -1050,15 +1286,15 @@
     belief: `{
   "cycle_minute": 8,
   "system_state": {
-    "H0_noise": 0.04,
+    "H0_noise": 0.05,
     "H1_sensor_failure": 0.08,
-    "H2_isolated_incident": 0.18,
-    "H3_cascading_crisis": 0.70
+    "H2_isolated_incident": 0.13,
+    "H3_cascading_crisis": 0.74
   },
-  "shannon_entropy_bits": 1.34,
+  "shannon_entropy_bits": 1.28,
   "twin_prefix_locked": false,
   "recommended_policy": {
-    "action": "ALERT",
+    "action": "ESCALATE",
     "action_cost_expected": 24000,
     "hysteresis_gate": "ARMED",
     "lead_time_avoided_est_minutes": 8.5
@@ -1112,7 +1348,6 @@
 
   // --- EVENT LISTENERS ---
   function setupEventListeners() {
-    // Play/Pause/Prev/Next/Reset
     btnPlayPause.addEventListener('click', togglePlay);
 
     btnPrevMin.addEventListener('click', () => {
@@ -1125,14 +1360,14 @@
       if (currentMinute < 10) setMinute(currentMinute + 1);
     });
 
-    btnResetSim.addEventListener('click', () => {
+    btnResetSim.addEventListener('click', async () => {
       initAudio();
       if (isPlaying) togglePlay();
       userEscalatedAtMinute = null;
+      await loadEpisodeFromApi(currentScenario);
       setMinute(0);
     });
 
-    // Speed buttons
     speedBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         speedBtns.forEach(b => b.classList.remove('active'));
@@ -1148,57 +1383,116 @@
       });
     });
 
-    // Scenario switchers
-    btnScenarioAlpha.addEventListener('click', () => {
+    btnScenarioAlpha.addEventListener('click', async () => {
       initAudio();
       btnScenarioAlpha.classList.add('active');
       btnScenarioBeta.classList.remove('active');
       currentScenario = 'alpha';
       userEscalatedAtMinute = null;
-      updateSimulationHUD();
+      await loadEpisodeFromApi('alpha');
+      setMinute(0);
     });
 
-    btnScenarioBeta.addEventListener('click', () => {
+    btnScenarioBeta.addEventListener('click', async () => {
       initAudio();
       btnScenarioBeta.classList.add('active');
       btnScenarioAlpha.classList.remove('active');
       currentScenario = 'beta';
       userEscalatedAtMinute = null;
-      updateSimulationHUD();
+      await loadEpisodeFromApi('beta');
+      setMinute(0);
     });
 
-    // Filter tabs
     filterTabs.forEach(tab => {
       tab.addEventListener('click', () => {
         filterTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         activeFilter = tab.dataset.filter;
-        renderStreamEvents();
+        if (isApiOnline && (liveTimelineCache[currentMinute] || liveTimelineCache[String(currentMinute)])) {
+          renderLiveEvents();
+        } else {
+          renderFallbackEvents();
+        }
         playTickSound();
       });
     });
 
-    // Adversity toggles
-    document.getElementById('toggleGatewayDrop').addEventListener('change', (e) => {
-      flagGatewayDrop = e.target.checked;
-      initAudio();
-      playTickSound();
-      updateSimulationHUD();
-    });
+    // CAP Format switchers
+    if (btnCapJson && btnCapXml) {
+      btnCapJson.addEventListener('click', () => {
+        btnCapJson.classList.add('active');
+        btnCapXml.classList.remove('active');
+        activeCapFormat = 'json';
+        renderCapAlert(null);
+      });
+      btnCapXml.addEventListener('click', () => {
+        btnCapXml.classList.add('active');
+        btnCapJson.classList.remove('active');
+        activeCapFormat = 'xml';
+        renderCapAlert(null);
+      });
+    }
 
-    document.getElementById('toggleRumorMimic').addEventListener('change', (e) => {
-      flagRumorMimic = e.target.checked;
-      initAudio();
-      playTickSound();
-      updateSimulationHUD();
-    });
+    // Adversity Toggles -> /inject
+    const toggleGw = document.getElementById('toggleGatewayDrop');
+    if (toggleGw) {
+      toggleGw.addEventListener('change', async (e) => {
+        flagGatewayDrop = e.target.checked;
+        initAudio();
+        playTickSound();
+        if (isApiOnline && window.CrisisSenseAPI) {
+          await window.CrisisSenseAPI.injectAdversity('cutout', 'gw_1');
+          const tl = await window.CrisisSenseAPI.getTimeline();
+          if (tl && tl.timeline) liveTimelineCache = tl.timeline;
+        }
+        updateSimulationHUD();
+      });
+    }
 
-    document.getElementById('toggleStreamJitter').addEventListener('change', (e) => {
-      flagStreamJitter = e.target.checked;
-      initAudio();
-      playTickSound();
-      updateSimulationHUD();
-    });
+    const toggleRumor = document.getElementById('toggleRumorMimic');
+    if (toggleRumor) {
+      toggleRumor.addEventListener('change', async (e) => {
+        flagRumorMimic = e.target.checked;
+        initAudio();
+        playTickSound();
+        if (isApiOnline && window.CrisisSenseAPI) {
+          await window.CrisisSenseAPI.injectAdversity('rumor');
+          const tl = await window.CrisisSenseAPI.getTimeline();
+          if (tl && tl.timeline) liveTimelineCache = tl.timeline;
+        }
+        updateSimulationHUD();
+      });
+    }
+
+    const toggleJitter = document.getElementById('toggleStreamJitter');
+    if (toggleJitter) {
+      toggleJitter.addEventListener('change', async (e) => {
+        flagStreamJitter = e.target.checked;
+        initAudio();
+        playTickSound();
+        if (isApiOnline && window.CrisisSenseAPI) {
+          await window.CrisisSenseAPI.injectAdversity('jitter');
+          const tl = await window.CrisisSenseAPI.getTimeline();
+          if (tl && tl.timeline) liveTimelineCache = tl.timeline;
+        }
+        updateSimulationHUD();
+      });
+    }
+
+    const toggleLie = document.getElementById('toggleStructuredLie');
+    if (toggleLie) {
+      toggleLie.addEventListener('change', async (e) => {
+        flagStructuredLie = e.target.checked;
+        initAudio();
+        playTickSound();
+        if (isApiOnline && window.CrisisSenseAPI) {
+          await window.CrisisSenseAPI.injectAdversity('lie');
+          const tl = await window.CrisisSenseAPI.getTimeline();
+          if (tl && tl.timeline) liveTimelineCache = tl.timeline;
+        }
+        updateSimulationHUD();
+      });
+    }
 
     // Sound toggle
     soundToggle.addEventListener('click', () => {
@@ -1216,28 +1510,43 @@
 
     // Cost sliders
     [inputFalseAlarm, inputDelayDamage, inputPrepare, inputPrior].forEach(sl => {
-      sl.addEventListener('input', recalculateCostThresholds);
+      if (sl) sl.addEventListener('input', recalculateCostThresholds);
     });
 
-    // Canvas animation ticker for pulsing edges
+    // Canvas animation ticker
     setInterval(() => {
-      drawCausalGraph();
+      drawCausalGraph(liveTimelineCache[currentMinute] || liveTimelineCache[String(currentMinute)] || null);
     }, 100);
   }
 
   // --- INITIALIZATION ---
-  function init() {
+  async function init() {
     initScrubber();
     setupEventListeners();
     initSchemaTabs();
     recalculateCostThresholds();
+
+    // Check API connection and load episode
+    if (window.CrisisSenseAPI) {
+      window.CrisisSenseAPI.onConnectionChange(updateConnectionBadge);
+      const online = await window.CrisisSenseAPI.checkHealth();
+      if (online) {
+        await loadEpisodeFromApi(currentScenario);
+      } else {
+        updateConnectionBadge(false);
+      }
+    } else {
+      updateConnectionBadge(false);
+    }
+
     updateSimulationHUD();
+
+    // Load Open-Meteo Weather independently
     loadWeatherForecast();
     window.setInterval(loadWeatherForecast, WEATHER_REFRESH_INTERVAL_MS);
     weatherRefreshBtn.addEventListener('click', loadWeatherForecast);
   }
 
-  // Run on DOM load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
