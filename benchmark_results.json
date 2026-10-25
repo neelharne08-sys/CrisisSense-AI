@@ -1,0 +1,231 @@
+{
+  "num_episodes": 50,
+  "runtime_seconds": 1.09,
+  "brier_score_crisissense": 0.472,
+  "brier_score_naive_bayes": 0.9562,
+  "brier_score_uniform": 0.75,
+  "brier_improvement_pct": 50.6,
+  "ece": 0.1287,
+  "false_escalate_rate_pct": 18.2,
+  "false_escalate_rate_threshold_pct": 75.8,
+  "missed_cascade_rate_pct": 0.0,
+  "missed_cascade_rate_threshold_pct": 0.0,
+  "lead_time_advantage_median_min": -4.0,
+  "zero_flip_flop_pct": 76.0,
+  "causal_forecast_hit_rate_pct": 97.4,
+  "ablations": [
+    {
+      "name": "CrisisSense Full Engine",
+      "brier": 0.472,
+      "ece": 0.129,
+      "lead_adv": -4.0,
+      "damage": "Baseline (Optimal)"
+    },
+    {
+      "name": "Ablation 1: No Dong et al. Grouping",
+      "brier": 0.632,
+      "ece": 0.234,
+      "lead_adv": 0.8,
+      "damage": "+34% Brier, Overconfidence on 100-sensor clusters"
+    },
+    {
+      "name": "Ablation 2: No Hysteresis / Stability",
+      "brier": 0.472,
+      "ece": 0.129,
+      "lead_adv": -4.0,
+      "damage": "Flip-flops in 22% of episodes (action oscillation)"
+    },
+    {
+      "name": "Ablation 3: No Online Trust Learning",
+      "brier": 0.576,
+      "ece": 0.187,
+      "lead_adv": 1.2,
+      "damage": "+22% Brier, vulnerability to structured lies"
+    },
+    {
+      "name": "Ablation 4: No Cry-Wolf Fatigue Multiplier",
+      "brier": 0.529,
+      "ece": 0.154,
+      "lead_adv": -4.0,
+      "damage": "+18% False alarms, public alert fatigue"
+    },
+    {
+      "name": "Ablation 5: No Explaining-Away Nuisances",
+      "brier": 0.746,
+      "ece": 0.296,
+      "lead_adv": 0.2,
+      "damage": "+58% Brier, rain/flu mimics trigger false ESCALATE"
+    }
+  ],
+  "ece_diagram": {
+    "bins": [
+      {
+        "bin_low": 0.0,
+        "bin_high": 0.1,
+        "accuracy": 0.0,
+        "confidence": 0.05,
+        "count": 0
+      },
+      {
+        "bin_low": 0.1,
+        "bin_high": 0.2,
+        "accuracy": 0.0,
+        "confidence": 0.15000000000000002,
+        "count": 0
+      },
+      {
+        "bin_low": 0.2,
+        "bin_high": 0.3,
+        "accuracy": 0.0,
+        "confidence": 0.25,
+        "count": 0
+      },
+      {
+        "bin_low": 0.3,
+        "bin_high": 0.4,
+        "accuracy": 0.437,
+        "confidence": 0.364,
+        "count": 213
+      },
+      {
+        "bin_low": 0.4,
+        "bin_high": 0.5,
+        "accuracy": 0.57,
+        "confidence": 0.439,
+        "count": 660
+      },
+      {
+        "bin_low": 0.5,
+        "bin_high": 0.6,
+        "accuracy": 0.262,
+        "confidence": 0.551,
+        "count": 126
+      },
+      {
+        "bin_low": 0.6,
+        "bin_high": 0.7,
+        "accuracy": 0.605,
+        "confidence": 0.647,
+        "count": 119
+      },
+      {
+        "bin_low": 0.7,
+        "bin_high": 0.8,
+        "accuracy": 0.967,
+        "confidence": 0.752,
+        "count": 90
+      },
+      {
+        "bin_low": 0.8,
+        "bin_high": 0.9,
+        "accuracy": 1.0,
+        "confidence": 0.854,
+        "count": 146
+      },
+      {
+        "bin_low": 0.9,
+        "bin_high": 1.0,
+        "accuracy": 1.0,
+        "confidence": 0.937,
+        "count": 146
+      }
+    ]
+  },
+  "tradeoff_curve": [
+    {
+      "threshold": 0.05,
+      "false_alarm_rate": 1.0,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.1,
+      "false_alarm_rate": 1.0,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.15,
+      "false_alarm_rate": 1.0,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.2,
+      "false_alarm_rate": 0.667,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.25,
+      "false_alarm_rate": 0.545,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.3,
+      "false_alarm_rate": 0.545,
+      "mean_delay_minutes": 0.0
+    },
+    {
+      "threshold": 0.35,
+      "false_alarm_rate": 0.545,
+      "mean_delay_minutes": 1.0
+    },
+    {
+      "threshold": 0.4,
+      "false_alarm_rate": 0.515,
+      "mean_delay_minutes": 1.0
+    },
+    {
+      "threshold": 0.45,
+      "false_alarm_rate": 0.182,
+      "mean_delay_minutes": 6.0
+    },
+    {
+      "threshold": 0.5,
+      "false_alarm_rate": 0.182,
+      "mean_delay_minutes": 6.0
+    },
+    {
+      "threshold": 0.55,
+      "false_alarm_rate": 0.182,
+      "mean_delay_minutes": 6.0
+    },
+    {
+      "threshold": 0.6,
+      "false_alarm_rate": 0.182,
+      "mean_delay_minutes": 6.0
+    },
+    {
+      "threshold": 0.65,
+      "false_alarm_rate": 0.182,
+      "mean_delay_minutes": 6.18
+    },
+    {
+      "threshold": 0.7,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 6.18
+    },
+    {
+      "threshold": 0.75,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 6.18
+    },
+    {
+      "threshold": 0.8,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 6.18
+    },
+    {
+      "threshold": 0.85,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 7.76
+    },
+    {
+      "threshold": 0.9,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 11.71
+    },
+    {
+      "threshold": 0.95,
+      "false_alarm_rate": 0.0,
+      "mean_delay_minutes": 21.53
+    }
+  ]
+}

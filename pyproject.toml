@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crisissense-ai"
+version = "3.0.0"
+description = "CrisisSense AI: Continuous Online Probabilistic Decision-Support Engine for Urban Cascades"
+readme = "README.md"
+authors = [{ name = "CrisisSense AI Team" }]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.25.0",
+    "scipy>=1.11.0",
+    "pydantic>=2.9.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "streamlit>=1.38.0",
+    "sse-starlette>=2.1.0",
+    "plotly>=5.22.0",
+    "pandas>=2.2.0",
+    "pytest>=8.0.0",
+    "scikit-learn>=1.5.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
