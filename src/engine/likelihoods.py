@@ -1,7 +1,39 @@
+import math
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from src.schemas import StreamEvent, EventKind, SourceType
 from src.engine.state_space import StateSpace
+
+def lognormal_pdf(x: float, mu: float = math.log(20.0), sigma: float = 0.6) -> float:
+    """PDF of Lognormal distribution: heavy rain rate (mm/h)."""
+    if x <= 0.01:
+        return 1e-4
+    coeff = 1.0 / (x * sigma * math.sqrt(2.0 * math.pi))
+    exponent = -((math.log(x) - mu) ** 2) / (2.0 * (sigma ** 2))
+    return float(coeff * math.exp(exponent))
+
+def exponential_pdf(x: float, scale: float = 1.5) -> float:
+    """PDF of Exponential distribution: dry/normal background precipitation."""
+    if x < 0.0:
+        return 1e-4
+    rate = 1.0 / scale
+    return float(rate * math.exp(-x * rate))
+
+def rain_gauge_likelihood(value: float, r: int, is_continuous: bool = False) -> float:
+    """
+    Computes P(gauge reading | R):
+    - Continuous mm/h: Lognormal(mu=ln(20), sigma=0.6) for R=1 vs Exponential(scale=1.5) for R=0.
+    - Discrete synthetic: 0.95 for R=1 vs 0.02 for R=0.
+    """
+    if is_continuous or value > 1.0:
+        p1 = lognormal_pdf(value)
+        p0 = exponential_pdf(value)
+        total = p1 + p0 + 1e-12
+        return float(np.clip((p1 / total) if r == 1 else (p0 / total), 0.01, 0.99))
+    else:
+        if r == 1:
+            return 0.95 if value >= 0.5 else 0.05
+        return 0.02 if value >= 0.5 else 0.98
 
 class LikelihoodModel:
     """
@@ -109,8 +141,13 @@ class LikelihoodModel:
                 L[idx] = reliability * p + (1.0 - reliability) * 0.01
             return L
 
+        is_cont = (event.source_id == "open_meteo" or event.value > 1.0)
         for idx, s in enumerate(self.state_space.idx_to_tuple):
-            p_true = self.get_base_probability(event.kind, s)
+            if event.kind == EventKind.RAIN_GAUGE:
+                r_val = s[1]
+                p_true = rain_gauge_likelihood(event.value, r_val, is_continuous=is_cont)
+            else:
+                p_true = self.get_base_probability(event.kind, s)
             L[idx] = reliability * p_true + (1.0 - reliability) * self.fault_likelihood
             
         return L
@@ -167,8 +204,11 @@ class LikelihoodModel:
                 # Check 2: Physical contradiction
                 has_drain = any(e.kind == EventKind.DRAIN_ANOMALY and e.value > 0.8 for e in grp_events)
                 if has_drain and rain_is_dry and traffic_is_normal and len(rain_gauge_events) > 0:
+                    # Open-Meteo 1-10km grid resolution might miss micro-cloudburst: use soft discount 0.65
+                    is_open_meteo = any(e.source_id == "open_meteo" for e in rain_gauge_events)
+                    discount = 0.65 if is_open_meteo else 0.30
                     self.suspicious_groups[group_key] = current_minute + 10
-                    multipliers[group_key] = 0.3
+                    multipliers[group_key] = discount
                     continue
 
                 # Check 3: Uncorroborated volume spike

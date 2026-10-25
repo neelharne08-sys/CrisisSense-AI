@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import requests
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -16,6 +17,9 @@ from src.engine.filter import BayesianForwardFilter
 from src.engine.cap import CAPAlertBuilder
 from src.simulator.generator import EpisodeGenerator
 from src.simulator.corruptions import StreamCorruptor
+from src.simulator.live_weather import (
+    LiveWeatherFeed, fetch_weather, to_events, CITY_PRESETS, DEFAULT_LAT, DEFAULT_LON
+)
 from src.auth import DEMO_USERS, UserProfile
 from dashboard.login import render_login_page
 
@@ -137,6 +141,16 @@ if "current_minute" not in st.session_state:
     st.session_state.current_minute = 1
 if "history_payloads" not in st.session_state:
     st.session_state.history_payloads = {}
+if "live_weather_active" not in st.session_state:
+    st.session_state.live_weather_active = False
+if "weather_feed" not in st.session_state:
+    st.session_state.weather_feed = LiveWeatherFeed(lat=DEFAULT_LAT, lon=DEFAULT_LON)
+if "weather_events_by_min" not in st.session_state:
+    st.session_state.weather_events_by_min = {}
+if "weather_lat" not in st.session_state:
+    st.session_state.weather_lat = DEFAULT_LAT
+if "weather_lon" not in st.session_state:
+    st.session_state.weather_lon = DEFAULT_LON
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user" not in st.session_state:
@@ -204,7 +218,63 @@ if st.sidebar.button("🔄 Reset / Load Scenario", use_container_width=True, hel
     st.session_state.meta = meta
     st.session_state.current_minute = 1
     st.session_state.history_payloads = {}
+    st.session_state.weather_events_by_min = {}
     st.rerun()
+
+st.sidebar.markdown("---")
+
+# ── Live Open-Meteo Natural Weather Integration ──────────────────────────
+st.sidebar.subheader("🌐 Live Natural Weather Feed")
+live_toggle = st.sidebar.toggle(
+    "Live Open-Meteo Weather", 
+    value=st.session_state.live_weather_active,
+    help="Ingest real-time unauthenticated 15-minute precipitation telemetry from Open-Meteo directly into the Bayesian filter."
+)
+
+if live_toggle != st.session_state.live_weather_active:
+    st.session_state.live_weather_active = live_toggle
+    # Reinitialize clean engine state to prevent synthetic / live cross-contamination
+    st.session_state.engine = BayesianForwardFilter()
+    st.session_state.history_payloads = {}
+    st.session_state.weather_events_by_min = {}
+    st.session_state.weather_feed = LiveWeatherFeed(lat=st.session_state.weather_lat, lon=st.session_state.weather_lon)
+    st.rerun()
+
+if st.session_state.live_weather_active:
+    city_preset = st.sidebar.selectbox(
+        "City Preset",
+        list(CITY_PRESETS.keys()) + ["Custom Coordinates"],
+        index=0,
+        help="Choose a city or enter custom GPS coordinates to stream live 15-min rainfall."
+    )
+    if city_preset in CITY_PRESETS:
+        c_lat, c_lon = CITY_PRESETS[city_preset]
+    else:
+        c_lat = st.session_state.weather_lat
+        c_lon = st.session_state.weather_lon
+
+    c_lat_in, c_lon_in = st.sidebar.columns(2)
+    with c_lat_in:
+        new_lat = st.number_input("Latitude", value=float(c_lat), format="%.4f")
+    with c_lon_in:
+        new_lon = st.number_input("Longitude", value=float(c_lon), format="%.4f")
+
+    if new_lat != st.session_state.weather_lat or new_lon != st.session_state.weather_lon:
+        st.session_state.weather_lat = new_lat
+        st.session_state.weather_lon = new_lon
+        st.session_state.weather_feed = LiveWeatherFeed(lat=new_lat, lon=new_lon)
+        st.session_state.history_payloads = {}
+        st.session_state.weather_events_by_min = {}
+        st.rerun()
+
+    if st.session_state.weather_feed.is_stale:
+        st.sidebar.warning("⚠️ Weather feed stale: treated as missing (no fake 0 mm)")
+    else:
+        last_val = (
+            st.session_state.weather_feed.rolling_history[-1] 
+            if st.session_state.weather_feed.rolling_history else 0.0
+        )
+        st.sidebar.success(f"🟢 Open-Meteo Connected: {last_val:.1f} mm/h")
 
 st.sidebar.markdown("---")
 
@@ -271,6 +341,21 @@ with col_inj2:
 for m in range(1, st.session_state.current_minute + 1):
     if m not in st.session_state.history_payloads:
         m_evs = [e for e in st.session_state.all_events if (e.event_time // 60) == m]
+
+        # Inject real-time Open-Meteo weather telemetry if active
+        if st.session_state.get("live_weather_active", False):
+            if m not in st.session_state.weather_events_by_min:
+                try:
+                    w_evs = st.session_state.weather_feed.poll(current_minute=m)
+                    st.session_state.weather_events_by_min[m] = w_evs
+                except requests.RequestException:
+                    st.session_state.weather_events_by_min[m] = []
+                    st.sidebar.warning("Weather feed stale: treated as missing (no fake 0 mm)")
+                except Exception:
+                    st.session_state.weather_events_by_min[m] = []
+
+            m_evs = m_evs + st.session_state.weather_events_by_min.get(m, [])
+
         payload = st.session_state.engine.process_minute(m, m_evs)
         st.session_state.history_payloads[m] = payload
 
@@ -384,6 +469,26 @@ with tab_live:
                 "• 0.0 points means waiting has no benefit; take immediate action."
             )
         )
+
+    if st.session_state.get("live_weather_active", False):
+        w_feed = st.session_state.get("weather_feed")
+        rain_rate = (
+            w_feed.rolling_history[-1] if (w_feed and w_feed.rolling_history) else 0.0
+        )
+        p_rain = current_payload.nuisance_posteriors.get("R", 0.05)
+        st.markdown(f"""
+        <div style="background: rgba(14, 165, 233, 0.10); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 10px 16px; margin: 12px 0 6px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <span style="font-weight: 700; color: #38bdf8; font-size: 0.95rem;">🌐 Open-Meteo Live Precipitation Feed Active</span>
+                <span style="margin-left: 10px; color: #94a3b8; font-size: 0.82rem;">Target: Lat {st.session_state.weather_lat:.4f}, Lon {st.session_state.weather_lon:.4f} (15-min bucket sampling)</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <span style="background: #0369a1; color: #ffffff; padding: 3px 10px; border-radius: 4px; font-weight: 600; font-size: 0.82rem;">Rain Gauge: {rain_rate:.2f} mm/h</span>
+                <span style="background: {'#15803d' if p_rain >= 0.5 else '#334155'}; color: #ffffff; padding: 3px 10px; border-radius: 4px; font-weight: 600; font-size: 0.82rem;">Nuisance P(R=1): {p_rain*100:.1f}%</span>
+                <span style="background: #1e293b; border: 1px solid #475569; color: #cbd5e1; padding: 3px 10px; border-radius: 4px; font-weight: 500; font-size: 0.82rem;">Explaining Away: {'Active 🛡️' if p_rain > 0.5 else 'Standby'}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("---")
 

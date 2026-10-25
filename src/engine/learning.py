@@ -21,6 +21,7 @@ class OnlineLearner:
             SourceType.DRAINAGE.value: (8.0, 2.0),
             SourceType.TRAFFIC.value: (7.0, 3.0),
             SourceType.RAIN.value: (9.0, 1.0),
+            "open_meteo": (8.5, 1.5),
             SourceType.EMERGENCY_LINES.value: (9.0, 1.0),
             SourceType.DISPATCH.value: (9.0, 1.0),
             SourceType.HOSPITALS.value: (8.0, 2.0),
@@ -156,6 +157,18 @@ class OnlineLearner:
         self.dirichlet_counts = gamma * self.dirichlet_counts
         self.dirichlet_counts[true_h] += 1.0
         return triggered_this_step or self.regime_shift_detected
+
+    def update_weather_prior_shift(self, rolling_rain_mm_h: float) -> bool:
+        """
+        Feeds rolling rain history from Open-Meteo into changepoint adaptation.
+        If rolling rain exceeds heavy cloudburst thresholds (>15.0 mm/h),
+        flags regime shift and temporarily drops forgetting factor gamma to 0.70.
+        """
+        if rolling_rain_mm_h > 15.0:
+            self.regime_shift_detected = True
+            self.shift_countdown = 10
+            return True
+        return False
 
     def get_learned_h_prior(self) -> np.ndarray:
         return self.dirichlet_counts / np.sum(self.dirichlet_counts)

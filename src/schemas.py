@@ -38,7 +38,7 @@ class StreamEvent(BaseModel):
     event_time: int = Field(..., description="Simulated event time in seconds (minute * 60 + sec)")
     arrival_time: int = Field(..., description="Simulated arrival time in seconds")
     kind: EventKind
-    value: float = Field(..., ge=0.0, le=1.0)
+    value: float = Field(..., ge=0.0, description="Measured intensity, rate (e.g. mm/h), or anomaly score")
     location: str
     gateway_id: Optional[str] = None
     claim_id: Optional[str] = None

@@ -1,0 +1,38 @@
+{
+  "latitude": 21.1458,
+  "longitude": 79.0882,
+  "generationtime_ms": 0.12,
+  "utc_offset_seconds": 19800,
+  "timezone": "Asia/Kolkata",
+  "timezone_abbreviation": "IST",
+  "elevation": 312.0,
+  "current": {
+    "time": "2026-10-26T02:45",
+    "interval": 900,
+    "precipitation": 7.5,
+    "rain": 7.5,
+    "wind_speed_10m": 24.2
+  },
+  "minutely_15": {
+    "time": [
+      "2026-10-26T01:45",
+      "2026-10-26T02:00",
+      "2026-10-26T02:15",
+      "2026-10-26T02:30",
+      "2026-10-26T02:45",
+      "2026-10-26T03:00",
+      "2026-10-26T03:15",
+      "2026-10-26T03:30"
+    ],
+    "precipitation": [
+      4.2,
+      6.8,
+      8.5,
+      9.0,
+      8.0,
+      6.5,
+      4.0,
+      2.0
+    ]
+  }
+}
