@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Student Account — CrisisSense AI</title>
+
+    <link rel="stylesheet" href="login.css">
+    <script type="module" src="register.js"></script>
+</head>
+<body>
+    <div class="login-bg-mesh" aria-hidden="true">
+        <div class="bg-orb orb-1"></div>
+        <div class="bg-orb orb-2"></div>
+    </div>
+
+    <main class="login-container">
+        <div class="brand-badge">
+            <span class="brand-dot"></span>
+            <span class="brand-text">CrisisSense AI</span>
+        </div>
+
+        <h1 class="login-heading">Create Student Account</h1>
+        <p class="subtitle">Register with your email address to access the 10-Minute Decision System.</p>
+
+        <div class="demo-account-card">
+            <div class="demo-card-header">
+                <span class="demo-badge">STUDENT REGISTRATION</span>
+            </div>
+            <div class="demo-creds-text">
+                Your email and password are saved securely by Supabase Authentication.
+                <div class="demo-sub">If email confirmation is enabled, confirm your address before signing in.</div>
+            </div>
+        </div>
+
+        <form id="registerForm" novalidate>
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Create a password"
+                        autocomplete="new-password"
+                        minlength="6"
+                        required
+                    >
+                    <button type="button" class="toggle-password" id="togglePassword">Show</button>
+                </div>
+            </div>
+
+            <label class="remember">
+                <input type="checkbox" id="remember" checked>
+                Keep me signed in
+            </label>
+
+            <button type="submit" class="login-button" id="registerBtn">CREATE ACCOUNT</button>
+            <p id="message" role="status" aria-live="polite"></p>
+        </form>
+
+        <p class="signup">
+            Already registered?
+            <a href="login.html">Sign in</a>
+        </p>
+    </main>
+</body>
+</html>

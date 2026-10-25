@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-pending">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrisisSense AI — Calibrated Crisis Decision Intelligence</title>
+
+  <style>html.auth-pending body { visibility: hidden; }</style>
+  <script type="module">
+    import { isSupabaseConfigured, supabase } from './supabase-config.js';
+
+    function showUser(user) {
+      const name = user.user_metadata?.display_name || user.email || 'Duty Officer';
+      const nameElem = document.getElementById('userDisplayName');
+      const avatarElem = document.getElementById('userAvatarCircle');
+      if (nameElem) nameElem.textContent = name.split('@')[0].split('/')[0];
+      if (avatarElem) avatarElem.textContent = name.charAt(0).toUpperCase();
+    }
+
+    if (!isSupabaseConfigured) {
+      window.location.replace('login.html?setup=supabase');
+    } else {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!data.session) {
+          window.location.replace('login.html');
+        } else {
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          if (!userData.user) {
+            window.location.replace('login.html');
+          } else {
+            showUser(userData.user);
+            document.documentElement.classList.remove('auth-pending');
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            logoutBtn?.addEventListener('click', async () => {
+              logoutBtn.disabled = true;
+              const { error: signOutError } = await supabase.auth.signOut();
+              if (signOutError) {
+                logoutBtn.disabled = false;
+                window.alert('Sign-out failed: ' + signOutError.message);
+                return;
+              }
+              window.location.replace('login.html?logout=1');
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Unable to verify Supabase session:', error);
+        window.location.replace('login.html?authError=session');
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="tactical-theme">
+
+  <!-- TOP NAV BAR -->
+  <header class="top-nav">
+    <div class="nav-brand">
+      <div class="radar-logo-pulse">
+        <span class="radar-ping"></span>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10"></path>
+          <circle cx="12" cy="12" r="4"></circle>
+          <line x1="12" y1="12" x2="19" y2="5"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">THE FIRST 10 MINUTES</div>
+        <div class="brand-subtitle">Online Calibrated Crisis Inference & Optimal Stopping Engine</div>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Ticker -->
+    <div class="nav-telemetry">
+      <div class="telemetry-item">
+        <span class="label">METROPOLIS:</span>
+        <span class="value">SECTOR 07 (8.4M POP)</span>
+      </div>
+      <div class="telemetry-separator">/</div>
+      <div class="telemetry-item">
+        <span class="label">CYCLE:</span>
+        <span class="value highlight-amber">60s BAYESIAN POSTERIOR</span>
+      </div>
+      <div class="telemetry-separator">/</div>
+      <div class="telemetry-item"> 
+        <span class="label">STATUS:</span>
+        <span class="status-indicator live">
+          <span class="pulse-dot"></span> STREAM LIVE
+        </span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="nav-actions">
+      <button class="sound-toggle-btn" id="soundToggle" title="Toggle Tactical Audio (Synthesized Web Audio)">
+        <svg class="audio-icon unmuted" id="audioIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span class="audio-label" id="audioLabel">AUDIO ON</span>
+      </button>
+
+      <a href="#simulator" class="btn btn-outline nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Live Simulator
+      </a>
+
+      <a href="#twin-test" class="btn btn-primary nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path><path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"></path><circle cx="8" cy="12" r="2"></circle></svg>
+        Twin Test
+      </a>
+
+      <!-- Logged-in User & Sign Out -->
+      <div class="user-auth-badge" id="userAuthBadge">
+        <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+        <span class="user-badge-name" id="userDisplayName">User</span>
+        <button type="button" class="btn-logout-header" id="logoutBtn" title="Sign out">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-radial-glow"></div>
+
+    <div class="container hero-container">
+      <div class="hero-header-badge">
+        <span class="badge-fire">CRISIS INTELLIGENCE BENCHMARK</span>
+        <span class="badge-tag">ONLINE MULTI-SOURCE INFERENCE UNDER UNCERTAINTY</span>
+      </div>
+
+      <h1 class="hero-title">
+        A DISASTER RARELY BEGINS AT THE MOMENT <span class="gradient-text">IT BECOMES VISIBLE.</span>
+      </h1>
+
+      <div class="hero-narrative-card">
+        <div class="narrative-meta">
+          <span class="narrative-time"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> TUESDAY EVENING · 20:00 · 8,000,000 CITIZENS</span>
+          <span class="narrative-tag">THE 10-MINUTE WINDOW</span>
+        </div>
+        <p class="narrative-quote">
+          “At <strong>00:00</strong> the rain gets heavier. At <strong>00:03</strong> drainage sensors report anomalies. At <strong>00:05</strong> traffic slows. At <strong>00:07</strong> emergency lines get busy. At <strong>00:09</strong> two hospitals report unusual arrivals. The duty officer has <em>one question and one button</em>: is this noise, a broken sensor, a minor local incident, or the first ten minutes of a cascading crisis? <strong>Waiting costs lives, but pressing the button for nothing costs credibility and trains the city to ignore the next real alarm.</strong>”
+        </p>
+      </div>
+
+      <!-- Core Challenge Callout Banner -->
+      <div class="core-challenge-banner">
+        <div class="core-challenge-glow"></div>
+        <div class="core-challenge-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div class="core-challenge-content">
+          <div class="core-challenge-title">CORE MANDATE:</div>
+          <div class="core-challenge-statement">
+            <strong>Be calibrated</strong> when it cannot know for sure, <strong>commit fast</strong> when the evidence solidifies, and <strong>explain exactly</strong> why it changed its mind.
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Policy Spectrum -->
+      <div class="action-spectrum-bar">
+        <div class="spectrum-label">RECOMMENDED ACTION COST SPECTRUM:</div>
+        <div class="spectrum-steps">
+          <div class="spectrum-step step-watch active" data-action="WATCH">
+            <div class="step-code">WATCH</div>
+            <div class="step-desc">Passive monitoring ($0 cost, 0 cry-wolf)</div>
+          </div>
+          <div class="spectrum-arrow">&rarr;</div>
+          <div class="spectrum-step step-prepare" data-action="PREPARE">
+            <div class="step-code">PREPARE</div>
+            <div class="step-desc">Internal agency standby (minimal cost)</div>
+          </div>
+          <div class="spectrum-arrow">&rarr;</div>
+          <div class="spectrum-step step-alert" data-action="ALERT">
+            <div class="step-code">ALERT</div>
+            <div class="step-desc">Pre-deploy first responders & assets</div>
+          </div>
+          <div class="spectrum-arrow">&rarr;</div>
+          <div class="spectrum-step step-escalate" data-action="ESCALATE">
+            <div class="step-code">ESCALATE</div>
+            <div class="step-desc">Public siren / mass evacuation order</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE MISSION CONTROL & SIMULATOR SECTION -->
+  <section class="section simulator-section" id="simulator">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">INTERACTIVE ENGINE DEMO</div>
+          <h2 class="section-title">Minute-by-Minute Crisis Inference HUD</h2>
+          <p class="section-lead">Step through the 00:00 &ndash; 00:10 minute timeline. Watch calibrated Bayesian probabilities re-weight, causal foresight predict failures, and optimal stopping prevent premature false alarms.</p>
+        </div>
+
+        <div class="scenario-selector-pill">
+          <span class="pill-label">EXPERIMENT:</span>
+          <button class="pill-option active" id="btnScenarioAlpha" data-scenario="alpha">
+            <span class="pill-dot red"></span> Episode Alpha (Cascading Disaster)
+          </button>
+          <button class="pill-option" id="btnScenarioBeta" data-scenario="beta">
+            <span class="pill-dot amber"></span> Episode Beta (The Twin Mimic / Coincidence)
+          </button>
+        </div>
+      </div>
+
+      <section class="weather-panel" aria-labelledby="weatherTitle" aria-live="polite">
+        <div class="weather-panel-heading">
+          <div>
+            <div class="section-eyebrow">LIVE WEATHER FORECAST</div>
+            <h3 id="weatherTitle">Berlin <span>(52.52, 13.41)</span></h3>
+          </div>
+          <div class="weather-update">
+            <span id="weatherStatus" role="status">Loading forecast&hellip;</span>
+            <button type="button" class="weather-refresh-button" id="weatherRefreshBtn">Refresh</button>
+          </div>
+        </div>
+        <div class="weather-metrics">
+          <div class="weather-metric">
+            <span class="weather-metric-label">Temperature</span>
+            <strong id="weatherTemperature">&mdash;</strong>
+            <span id="weatherDescription">Waiting for forecast</span>
+          </div>
+          <div class="weather-metric">
+            <span class="weather-metric-label">Rain</span>
+            <strong id="weatherRain">&mdash;</strong>
+            <span>Hourly precipitation</span>
+          </div>
+          <div class="weather-metric">
+            <span class="weather-metric-label">Wind at 120 m</span>
+            <strong id="weatherWind">&mdash;</strong>
+            <span id="weatherWindDirection">Direction unavailable</span>
+          </div>
+          <div class="weather-metric">
+            <span class="weather-metric-label">Sea-level pressure</span>
+            <strong id="weatherPressure">&mdash;</strong>
+            <span id="weatherForecastTime">Forecast hour unavailable</span>
+          </div>
+        </div>
+        <p class="weather-disclaimer">Forecast context only&mdash;not an emergency alert or a crisis determination. The simulator below remains demonstration data. Source: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>.</p>
+      </section>
+
+      <!-- SIMULATOR CONTROL BAR -->
+      <div class="sim-control-dock">
+        <!-- Time Display -->
+        <div class="sim-time-display">
+          <div class="time-label">ELAPSED TIME</div>
+          <div class="digital-clock" id="clockDisplay">00:00</div>
+          <div class="time-sub">CYCLE: MINUTE <span id="currentMinuteNum">0</span>/10</div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="sim-playback-group">
+          <button class="btn btn-icon" id="btnPrevMin" title="Previous Minute">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+          </button>
+          <button class="btn btn-action-play" id="btnPlayPause">
+            <svg class="play-icon" id="playIcon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span id="playBtnText">START 10-MIN STREAM</span>
+          </button>
+          <button class="btn btn-icon" id="btnNextMin" title="Next Minute">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+          </button>
+          <button class="btn btn-icon" id="btnResetSim" title="Reset Episode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          </button>
+        </div>
+
+        <!-- Playback Speed -->
+        <div class="sim-speed-selector">
+          <span class="speed-label">SPEED:</span>
+          <button class="speed-btn active" data-speed="1500">1x</button>
+          <button class="speed-btn" data-speed="800">2x</button>
+          <button class="speed-btn" data-speed="400">4x</button>
+        </div>
+
+        <!-- Adversity Stress Test Toggles -->
+        <div class="adversity-dock">
+          <div class="adversity-label">INJECT ADVERSITY:</div>
+          <div class="adversity-toggles">
+            <label class="toggle-pill" title="Drop 100 sensors simultaneously via gateway failure">
+              <input type="checkbox" id="toggleGatewayDrop">
+              <span class="toggle-track"></span>
+              <span class="toggle-text">Gateway Cutout</span>
+            </label>
+            <label class="toggle-pill" title="Coordinated viral rumor swarm mimicking flood panic">
+              <input type="checkbox" id="toggleRumorMimic">
+              <span class="toggle-track"></span>
+              <span class="toggle-text">Rumor Swarm</span>
+            </label>
+            <label class="toggle-pill" title="Simulate delayed 911 dispatch logs & out-of-order packets">
+              <input type="checkbox" id="toggleStreamJitter">
+              <span class="toggle-track"></span>
+              <span class="toggle-text">Out-of-Order</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMELINE SCRUBBER -->
+      <div class="timeline-scrubber-wrapper">
+        <div class="timeline-track" id="timelineTrack">
+          <div class="timeline-progress" id="timelineProgress" style="width: 0%;"></div>
+          <!-- Scrubber Minute Nodes (0 to 10) -->
+          <div class="scrub-nodes" id="scrubNodes">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+        <div class="scrub-twin-indicator">
+          <div class="twin-bracket identical">
+            <span class="bracket-line"></span>
+            <span class="bracket-tag">00:00 &ndash; 00:07 IDENTICAL TWIN PREFIX (DO NOT PREMATURELY GUESS)</span>
+          </div>
+          <div class="twin-bracket split">
+            <span class="bracket-line split-line"></span>
+            <span class="bracket-tag split-tag">00:08+ DIVERGENCE &amp; SPEED PENALTY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN HUD DASHBOARD GRID -->
+      <div class="hud-grid">
+
+        <!-- COLUMN 1: LIVE INGESTION STREAM -->
+        <div class="hud-panel stream-feed-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              <h3>Multi-Source Event Stream</h3>
+            </div>
+            <div class="stream-badge-count" id="streamEventCount">0 EVENTS INGESTED</div>
+          </div>
+          <div class="panel-filter-tabs">
+            <button class="filter-tab active" data-filter="all">ALL</button>
+            <button class="filter-tab" data-filter="sensor">SENSORS</button>
+            <button class="filter-tab" data-filter="dispatch">911 DISPATCH</button>
+            <button class="filter-tab" data-filter="hospital">HOSPITALS</button>
+            <button class="filter-tab" data-filter="social">CITIZEN/SOCIAL</button>
+          </div>
+          <div class="stream-event-list" id="streamEventList">
+            <!-- Events injected dynamically -->
+          </div>
+          <div class="stream-meta-footer">
+            <div class="stream-stat">
+              <span class="k">Correlated Noise Filter:</span>
+              <span class="v" id="noiseFilterStatus">ACTIVE (GW-Cluster Imputation)</span>
+            </div>
+            <div class="stream-stat">
+              <span class="k">Source Trust Score:</span>
+              <span class="v highlight-emerald" id="sourceTrustScore">94.2%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: 4-HYPOTHESES BELIEF GAUGE & COST MODEL -->
+        <div class="hud-panel decision-core-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+              <h3>4-Hypothesis Calibrated Distribution</h3>
+            </div>
+            <div class="entropy-meter" id="entropyMetric" title="Shannon Entropy of Belief State">
+              H(P) = <strong>1.98 bits</strong> (Calibrated Uncertainty)
+            </div>
+          </div>
+
+          <div class="hypothesis-bars-container">
+            <!-- H0: Noise -->
+            <div class="hypo-bar-row" id="hypoRowH0">
+              <div class="hypo-meta">
+                <span class="hypo-name">H₀: Pure Noise / Weather Fluke</span>
+                <span class="hypo-prob" id="probH0">40.0%</span>
+              </div>
+              <div class="hypo-bar-track">
+                <div class="hypo-bar-fill fill-noise" id="barH0" style="width: 40%;"></div>
+              </div>
+              <div class="hypo-hint">Normal rainfall, stochastic call variance</div>
+            </div>
+
+            <!-- H1: Sensor Failure -->
+            <div class="hypo-bar-row" id="hypoRowH1">
+              <div class="hypo-meta">
+                <span class="hypo-name">H₁: Sensor Failure / Gateway Outage</span>
+                <span class="hypo-prob" id="probH1">35.0%</span>
+              </div>
+              <div class="hypo-bar-track">
+                <div class="hypo-bar-fill fill-sensor" id="barH1" style="width: 35%;"></div>
+              </div>
+              <div class="hypo-hint">Common-cause telemetry drop or hardware glitch</div>
+            </div>
+
+            <!-- H2: Isolated Incident -->
+            <div class="hypo-bar-row" id="hypoRowH2">
+              <div class="hypo-meta">
+                <span class="hypo-name">H₂: Isolated Local Incident</span>
+                <span class="hypo-prob" id="probH2">18.0%</span>
+              </div>
+              <div class="hypo-bar-track">
+                <div class="hypo-bar-fill fill-isolated" id="barH2" style="width: 18%;"></div>
+              </div>
+              <div class="hypo-hint">Single intersection clog or local flu cluster</div>
+            </div>
+
+            <!-- H3: Cascading Crisis -->
+            <div class="hypo-bar-row" id="hypoRowH3">
+              <div class="hypo-meta">
+                <span class="hypo-name">H₃: Cascading Crisis (Disaster)</span>
+                <span class="hypo-prob" id="probH3">7.0%</span>
+              </div>
+              <div class="hypo-bar-track">
+                <div class="hypo-bar-fill fill-crisis" id="barH3" style="width: 7%;"></div>
+              </div>
+              <div class="hypo-hint">Multi-system domino failure across critical sectors</div>
+            </div>
+          </div>
+
+          <!-- RECOMMENDED ACTION & OPTIMAL STOPPING HUD -->
+          <div class="recommended-action-card">
+            <div class="action-card-top">
+              <div class="action-subtext">CURRENT CALIBRATED POLICY</div>
+              <div class="action-state-display" id="actionStateDisplay">
+                <span class="state-badge watch" id="actionStateBadge">WATCH</span>
+                <span class="state-rationale" id="actionRationale">Cost of premature escalation (\$1.8M) exceeds expected damage. Maintain surveillance.</span>
+              </div>
+            </div>
+
+            <!-- Anti-Flip-Flop Hysteresis Lock Status -->
+            <div class="hysteresis-indicator">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Hysteresis Filter: <strong id="hysteresisStatus">LOCKED (Monotonic Escalation Gate)</strong> — Alert flip-flops strictly forbidden</span>
+            </div>
+
+            <!-- Cost Model Tradeoff Bar -->
+            <div class="cost-tradeoff-block">
+              <div class="tradeoff-header">
+                <span>Cry-Wolf False Alarm Penalty</span>
+                <span>Expected Crisis Damage Avoided</span>
+              </div>
+              <div class="tradeoff-gauge">
+                <div class="gauge-left" id="gaugeCryWolf" style="width: 75%;"></div>
+                <div class="gauge-right" id="gaugeDamageAvoided" style="width: 25%;"></div>
+              </div>
+              <div class="tradeoff-values">
+                <span class="val-left" id="valCryWolf">Penalty: High (Credibility Cost)</span>
+                <span class="val-center" id="valThreshold">Threshold split at 00:08</span>
+                <span class="val-right" id="valDamage">Lead Time: Safe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: FORESIGHT & CAUSAL ATTRIBUTION -->
+        <div class="hud-panel foresight-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <h3>Foresight & Causal Attribution</h3>
+            </div>
+            <div class="graph-tag">DAG REASONING</div>
+          </div>
+
+          <!-- FORECAST NEXT 3 EVENTS -->
+          <div class="foresight-events-box">
+            <div class="box-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+              FORECAST NEXT 3 EVENTS (Causal Horizon):
+            </div>
+            <div class="foresight-list" id="foresightList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- EXPLAIN WHY IT CHANGED ITS MIND -->
+          <div class="attribution-drawer">
+            <div class="box-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              WHY DID THE ENGINE CHANGE ITS MIND?
+            </div>
+            <div class="attribution-content" id="attributionContent">
+              <p class="attr-step"><span class="time-pill">00:00</span> Flat rainfall baseline across 12 sectors. Prior unshifted.</p>
+              <p class="attr-current">Awaiting minute stream progression. The causal engine isolates common-cause sensor artifacts from real physics.</p>
+            </div>
+          </div>
+
+          <!-- CAUSAL MINI GRAPH CANVAS -->
+          <div class="causal-graph-canvas-wrap">
+            <div class="canvas-label">TOPOLOGICAL CAUSAL GRAPH (PHYSICAL PROPAGATION):</div>
+            <canvas id="causalGraphCanvas" width="380" height="160"></canvas>
+            <div class="canvas-legend">
+              <span class="legend-item"><span class="dot active-node"></span> Active Ingestion</span>
+              <span class="legend-item"><span class="dot predicted-node"></span> Predicted Next</span>
+              <span class="legend-item"><span class="dot inert-node"></span> Unaffected</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- DUTY OFFICER INTERACTIVE CONSOLE (GAME MODE) -->
+      <div class="duty-officer-console">
+        <div class="officer-hud-header">
+          <div class="officer-tag">DUTY OFFICER'S DECISION DESK</div>
+          <h3>“One Question & One Button: Test Your Human Judgment Against The Machine”</h3>
+          <p>Press the button whenever you are convinced this is a Cascading Crisis. Can you avoid being fooled by the Twin Mimic while securing vital lead time in the True Crisis?</p>
+        </div>
+
+        <div class="officer-action-row">
+          <div class="officer-button-area">
+            <button class="big-red-button" id="dutyOfficerButton">
+              <div class="button-inner-ring">
+                <span class="button-label">ESCALATE</span>
+                <span class="button-sub">TRIGGER PUBLIC ALARM</span>
+              </div>
+            </button>
+            <div class="button-tooltip">Penalty: Instant city panic if wrong (-500 pts). Damage avoided if right (+100 pts/min lead time).</div>
+          </div>
+
+          <div class="officer-scoreboard">
+            <div class="score-card">
+              <div class="score-label">YOUR CALL:</div>
+              <div class="score-val" id="userDecisionText">MONITORING (WAITING)</div>
+            </div>
+            <div class="score-card">
+              <div class="score-label">MACHINE POLICY:</div>
+              <div class="score-val highlight-cyan" id="machinePolicyText">WATCH</div>
+            </div>
+            <div class="score-card">
+              <div class="score-label">CALIBRATION SCORE:</div>
+              <div class="score-val" id="twinScoreText">--</div>
+            </div>
+            <div class="score-card">
+              <div class="score-label">EVALUATION OUTCOME:</div>
+              <div class="score-val" id="dutyOutcomeText">SIMULATING...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- THE TWIN TEST: DEEP DIVE SECTION -->
+  <section class="section twin-test-section" id="twin-test">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-eyebrow">CORE BENCHMARK REQUIREMENT #1</div>
+        <h2 class="section-title">The Twin Test: Calibrated Restraint vs. Fast Commitment</h2>
+        <p class="section-lead">The acid test of early crisis intelligence. Both episodes present an identical 7-minute stream prefix. Weak models jump to conclusions early and hallucinate false alarms, while overfitted models react too late.</p>
+      </div>
+
+      <div class="twin-comparison-grid">
+        <!-- Twin Alpha Column -->
+        <div class="twin-column alpha-col">
+          <div class="twin-col-header">
+            <div class="twin-badge badge-crisis">EPISODE ALPHA: CASCADING DISASTER</div>
+            <h4>Flash Flood &amp; Electrical Grid Cascade</h4>
+            <p>Hidden truth: Levee micro-fissure escalating into regional transformer station submergence and medical ward blackout.</p>
+          </div>
+
+          <div class="twin-timeline-steps">
+            <div class="twin-step identical">
+              <span class="step-clock">00:00</span>
+              <span class="step-event">Rainfall surges to 45mm/h across Sector 4.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:03</span>
+              <span class="step-event">Underground drainage sensors report pressure anomalies.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:05</span>
+              <span class="step-event">Arterial traffic drops by 68% along River Boulevard.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:07</span>
+              <span class="step-event">911 emergency lines experience sudden spike in basement water reports.</span>
+            </div>
+            <div class="twin-step-diverge-banner">
+              <span>CRITICAL DIVERGENCE POINT (00:08)</span>
+            </div>
+            <div class="twin-step diverge alpha-diverge">
+              <span class="step-clock">00:08</span>
+              <span class="step-event"><strong>Substation 7 telemetry disconnects.</strong> Water depth sensor reaches critical threshold.</span>
+            </div>
+            <div class="twin-step diverge alpha-diverge">
+              <span class="step-clock">00:09</span>
+              <span class="step-event"><strong>Hospitals report emergency generator switch-overs</strong> &amp; trauma admissions.</span>
+            </div>
+            <div class="twin-step diverge alpha-diverge">
+              <span class="step-clock">00:10</span>
+              <span class="step-event"><strong>Levee 4 breach confirmed.</strong> Full cascading grid failure.</span>
+            </div>
+          </div>
+
+          <div class="twin-result-card crisis">
+            <div class="result-title">IDEAL MACHINE RESPONSE:</div>
+            <div class="result-body">Stay in <strong>WATCH / PREPARE</strong> between 00:00&ndash;00:07 (Twin entropy high). Immediately trigger <strong>ALERT at 00:08</strong> and <strong>ESCALATE at 00:09</strong>. Yields +8 minutes lead time for hospital evacuations!</div>
+          </div>
+        </div>
+
+        <!-- Twin Split Visualizer -->
+        <div class="twin-divider-graphic">
+          <div class="divergence-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <path d="M18 9a9 9 0 0 1-9 9"></path>
+            </svg>
+          </div>
+          <div class="divider-txt">IDENTICAL TO 00:07</div>
+          <div class="divider-line"></div>
+          <div class="divider-subtxt">SPLITS AT 00:08</div>
+        </div>
+
+        <!-- Twin Beta Column -->
+        <div class="twin-column beta-col">
+          <div class="twin-col-header">
+            <div class="twin-badge badge-mimic">EPISODE BETA: THE TWIN MIMIC</div>
+            <h4>Benign Storm + Flu Outbreak + Fiber Cut</h4>
+            <p>Hidden truth: Independent non-crisis coincidences producing a statistical signature that mimics a catastrophe.</p>
+          </div>
+
+          <div class="twin-timeline-steps">
+            <div class="twin-step identical">
+              <span class="step-clock">00:00</span>
+              <span class="step-event">Rainfall surges to 45mm/h across Sector 4.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:03</span>
+              <span class="step-event">Underground drainage sensors report pressure anomalies.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:05</span>
+              <span class="step-event">Arterial traffic drops by 68% along River Boulevard.</span>
+            </div>
+            <div class="twin-step identical">
+              <span class="step-clock">00:07</span>
+              <span class="step-event">911 emergency lines experience sudden spike in basement water reports.</span>
+            </div>
+            <div class="twin-step-diverge-banner">
+              <span>CRITICAL DIVERGENCE POINT (00:08)</span>
+            </div>
+            <div class="twin-step diverge beta-diverge">
+              <span class="step-clock">00:08</span>
+              <span class="step-event"><strong>Gateway ISP fiber cut</strong> causes 80 sensors to drop offline simultaneously.</span>
+            </div>
+            <div class="twin-step diverge beta-diverge">
+              <span class="step-clock">00:09</span>
+              <span class="step-event"><strong>Hospital intake surge is verified as seasonal norovirus / flu cluster</strong>, not storm trauma.</span>
+            </div>
+            <div class="twin-step diverge beta-diverge">
+              <span class="step-clock">00:10</span>
+              <span class="step-event"><strong>Drainage clears.</strong> Traffic resumes. No structural damage detected.</span>
+            </div>
+          </div>
+
+          <div class="twin-result-card mimic">
+            <div class="result-title">IDEAL MACHINE RESPONSE:</div>
+            <div class="result-body">Stay in <strong>WATCH</strong>. At 00:08, recognize correlated gateway outage ($H_1$) and medical cluster ($H_2$). <strong>Refuse to escalate to public alert</strong>, preserving \$2.5M in false-alarm municipal panic costs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURAL REQUIREMENTS (THE 6 PILLARS) -->
+  <section class="section architecture-section" id="architecture">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">SYSTEM SPECIFICATION</div>
+        <h2 class="section-title">The 6 Pillars of Crisis Decision Architecture</h2>
+        <p class="section-lead">Meeting the rigorous technical standards demanded by high-stakes urban infrastructure resilience.</p>
+      </div>
+
+      <div class="pillars-grid">
+        <!-- Pillar 1 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 01</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3 class="pillar-title">Honest Probabilities &amp; The Twin Test</h3>
+          <p class="pillar-desc">
+            Maintains strictly calibrated probabilities over four mutually exclusive hypotheses: <em>H₀ (Noise), H₁ (Sensor Failure), H₂ (Isolated Incident), H₃ (Cascading Crisis)</em>.
+          </p>
+          <div class="pillar-formula">
+            <code>Brier Score: BS = 1/N &sum; (P_t - y_t)² &mdash; Divergence Penalty if H(P) &lt; &epsilon; before t=07</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Strict penalty for confident wrong guesses before split</li>
+            <li>Maximum entropy prior during uninformative prefixes</li>
+            <li>Asymmetrical rewards for early post-split commitment</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 02</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline><path d="M8 12h8"></path></svg>
+          </div>
+          <h3 class="pillar-title">Optimal Stopping &amp; Cost Model</h3>
+          <p class="pillar-desc">
+            Weighs the compounding value of evacuation lead time against the crippling penalty of false alarms (city fatigue / cry-wolf effect).
+          </p>
+          <div class="pillar-formula">
+            <code>J*(x) = min { C_stop(x), C_continue(x) + E[J*(x_{t+1}) | x_t] }</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Bellman dynamic programming on partially observed Markov states</li>
+            <li>Cost of false ESCALATE: public panic, trust decay, \$2.5M commerce halt</li>
+            <li>Cost of late ESCALATE: exponential casualty curve per minute delayed</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 03</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="6" y1="9" x2="6" y2="15"></line><line x1="9" y1="18" x2="15" y2="18"></line></svg>
+          </div>
+          <h3 class="pillar-title">Foresight &amp; Causal Reasoning</h3>
+          <p class="pillar-desc">
+            Forecasts the next three events with tight time horizons, proving it internalizes the causal mechanics of physical infrastructure rather than superficial correlation.
+          </p>
+          <div class="pillar-formula">
+            <code>P(Event_{k} | do(Rainfall &gt; threshold), G_causal) &forall; k &in; {1,2,3}</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Do-Calculus intervention reasoning distinguishes root cause from symptoms</li>
+            <li>Predicts hydraulic overflow &rarr; electrical trip &rarr; telemetry loss sequence</li>
+            <li>Validates that downstream events conform to physical flow constraints</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 4 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 04</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </div>
+          <h3 class="pillar-title">Learning &amp; Prior Shifts</h3>
+          <p class="pillar-desc">
+            Autonomously updates trust in unreliable data sources across episodes and adapts to silent seasonal base-rate shifts (e.g., monsoon arrival) without offline retraining.
+          </p>
+          <div class="pillar-formula">
+            <code>w_i(t+1) = w_i(t) &times; exp(&eta; &times; Accuracy_i) &mdash; Dirichlet Prior Update</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Continuous online meta-learning with streaming decay</li>
+            <li>Bayesian discounting for aging or degraded hardware sensors</li>
+            <li>Automatic adaptation when background storm base-rates triple</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 5 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 05</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          </div>
+          <h3 class="pillar-title">Adversity &amp; Cutout Resilience</h3>
+          <p class="pillar-desc">
+            Handles massive telemetry dropouts (e.g., camera network gateway failure) and structured malicious mimics without crashing or hallucinating false crises.
+          </p>
+          <div class="pillar-formula">
+            <code>Cluster_Outage(G) = 1 &rArr; Impute_Missing(S) ~ SpatialKriging(Neighbors)</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Identifies single-point-of-failure gateway outages masking 100 sensors</li>
+            <li>Neutralizes astroturfed social media panic swarms via cross-verification</li>
+            <li>Robust buffering for out-of-order dispatch logs and retrospective retractions</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 6 -->
+        <div class="pillar-card">
+          <div class="pillar-badge">PILLAR 06</div>
+          <div class="pillar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          </div>
+          <h3 class="pillar-title">Stability &amp; Anti-Flip-Flop</h3>
+          <p class="pillar-desc">
+            Guarantees decision stability. Strictly prevents erratic alert flip-flopping (e.g., ESCALATE &rarr; WATCH &rarr; ESCALATE) which irreversibly destroys municipal credibility.
+          </p>
+          <div class="pillar-formula">
+            <code>&theta;_{escalate} = 0.82, &theta;_{de-escalate} = 0.25 (Dual-Threshold Hysteresis)</code>
+          </div>
+          <ul class="pillar-list">
+            <li>Schmitt-trigger hysteresis bands for action transitions</li>
+            <li>Monotonic public alert state machine with minimum confirmation windows</li>
+            <li>Strict cool-down protocols before de-escalation can be signaled</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE COST MODEL CALCULATOR -->
+  <section class="section cost-calculator-section" id="cost-model">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">DECISION THEORY PLAYGROUND</div>
+        <h2 class="section-title">Interactive Optimal Stopping &amp; Utility Simulator</h2>
+        <p class="section-lead">Calibrate the economic and humanitarian tradeoff matrix. See how the optimal decision boundary &theta;* dynamically moves based on public panic costs and casualty penalties.</p>
+      </div>
+
+      <div class="calculator-grid">
+        <div class="calc-controls-card">
+          <h4>Utility &amp; Loss Parameters</h4>
+
+          <div class="slider-control-group">
+            <div class="slider-header">
+              <label>Cost of False Alarm (Cry-Wolf City Panic):</label>
+              <span class="slider-val" id="valFalseAlarmCost">$2,500,000</span>
+            </div>
+            <input type="range" id="inputFalseAlarm" min="500000" max="10000000" step="250000" value="2500000">
+            <div class="slider-hint">Commercial shutdown, sirens blaring for nothing, trust eroded</div>
+          </div>
+
+          <div class="slider-control-group">
+            <div class="slider-header">
+              <label>Damage Cost Per Minute of Delayed Evacuation:</label>
+              <span class="slider-val" id="valDelayDamageCost">$1,200,000 / min</span>
+            </div>
+            <input type="range" id="inputDelayDamage" min="200000" max="5000000" step="100000" value="1200000">
+            <div class="slider-hint">Compounding physical damage, trapped vehicles, emergency triage load</div>
+          </div>
+
+          <div class="slider-control-group">
+            <div class="slider-header">
+              <label>Internal Readiness (PREPARE) Agency Cost:</label>
+              <span class="slider-val" id="valPrepareCost">$40,000</span>
+            </div>
+            <input type="range" id="inputPrepare" min="10000" max="200000" step="10000" value="40000">
+            <div class="slider-hint">Cheap prepositioning of rescue pumps, staging trucks, off-duty alert</div>
+          </div>
+
+          <div class="slider-control-group">
+            <div class="slider-header">
+              <label>Background Disaster Prior (Monsoon Season Shift):</label>
+              <span class="slider-val" id="valPriorProb">4.0%</span>
+            </div>
+            <input type="range" id="inputPrior" min="1" max="25" step="1" value="4">
+            <div class="slider-hint">Base probability of cascading crisis in a random 10-minute window</div>
+          </div>
+        </div>
+
+        <div class="calc-results-card">
+          <h4>Computed Optimal Thresholds</h4>
+          <div class="policy-result-badges">
+            <div class="policy-badge">
+              <span class="pb-label">WATCH &rarr; PREPARE:</span>
+              <span class="pb-val" id="threshPrepare">P(H₃) &ge; 14.2%</span>
+            </div>
+            <div class="policy-badge">
+              <span class="pb-label">PREPARE &rarr; ALERT:</span>
+              <span class="pb-val" id="threshAlert">P(H₃) &ge; 42.8%</span>
+            </div>
+            <div class="policy-badge highlight-red">
+              <span class="pb-label">ALERT &rarr; ESCALATE:</span>
+              <span class="pb-val" id="threshEscalate">P(H₃) &ge; 74.6%</span>
+            </div>
+          </div>
+
+          <div class="tradeoff-analysis-text">
+            <h5>Optimal Stopping Frontier Analysis:</h5>
+            <p id="calcDynamicInsight">
+              With current parameters, internal staging (<strong>PREPARE</strong>) is extremely cheap relative to public escalation. The optimal policy acts as a shock absorber: mobilize assets early at 14% belief, but do NOT push the public panic button until empirical evidence exceeds 75% confidence.
+            </p>
+          </div>
+
+          <div class="calc-visual-strip">
+            <div class="zone zone-watch" style="width: 14%;">WATCH</div>
+            <div class="zone zone-prepare" style="width: 28%;">PREPARE</div>
+            <div class="zone zone-alert" style="width: 32%;">ALERT</div>
+            <div class="zone zone-escalate" style="width: 26%;">ESCALATE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA STREAM & EVENT PAYLOAD SCHEMA -->
+  <section class="section schema-section" id="schema">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">API &amp; INTEGRATION SPECIFICATION</div>
+        <h2 class="section-title">Streaming Event Payload &amp; State Schemas</h2>
+        <p class="section-lead">The standardized JSON format for continuous online ingestion and real-time belief broadcasts.</p>
+      </div>
+
+      <div class="schema-tabs-container">
+        <div class="schema-tab-buttons">
+          <button class="schema-btn active" data-schema="ingest">Ingestion Event Payload</button>
+          <button class="schema-btn" data-schema="belief">Belief State Output (Per Minute)</button>
+          <button class="schema-btn" data-schema="foresight">Foresight Causal Graph</button>
+        </div>
+
+        <div class="schema-code-block">
+          <pre><code id="schemaCodeContent">
+{
+  "$schema": "https://crisissense.ai/schemas/v1/event-stream.json",
+  "event_id": "evt_9948271_sector4",
+  "timestamp": "2026-10-25T20:07:14.281Z",
+  "elapsed_seconds": 434,
+  "source_type": "HYDRO_TELEMETRY",
+  "reliability_weight": 0.88,
+  "is_retraction": false,
+  "data": {
+    "node_id": "drainage_culvert_48",
+    "pressure_kpa": 420.5,
+    "flow_rate_lps": 1840.2,
+    "anomaly_sigma": 3.82
+  },
+  "provenance": {
+    "gateway_id": "gw_hydro_north",
+    "mesh_hops": 2,
+    "received_order": 149
+  }
+}
+          </code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="tactical-footer">
+    <div class="container footer-content">
+      <div class="footer-left">
+        <div class="footer-logo">THE FIRST 10 MINUTES</div>
+        <p>A continuous online prediction, foresight, and optimal stopping platform for critical municipal defense and disaster mitigation.</p>
+        <div class="footer-copy">&copy; 2026 Crisis Intelligence Systems · Built for extreme-stakes decision environments.</div>
+      </div>
+
+      <div class="footer-links">
+        <div class="link-group">
+          <h5>Core Pillars</h5>
+          <a href="#twin-test">The Twin Test</a>
+          <a href="#simulator">Live HUD</a>
+          <a href="#architecture">Optimal Stopping</a>
+          <a href="#cost-model">Utility Playground</a>
+        </div>
+        <div class="link-group">
+          <h5>Hypotheses</h5>
+          <span>H₀: Noise</span>
+          <span>H₁: Sensor Failure</span>
+          <span>H₂: Isolated Local</span>
+          <span>H₃: Cascading Crisis</span>
+        </div>
+        <div class="link-group">
+          <h5>Actions</h5>
+          <span class="code-span">WATCH</span>
+          <span class="code-span">PREPARE</span>
+          <span class="code-span">ALERT</span>
+          <span class="code-span">ESCALATE</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT -->
+  <script src="app.js"></script>
+
+</body>
+</html>
