@@ -142,9 +142,11 @@ if "current_minute" not in st.session_state:
 if "history_payloads" not in st.session_state:
     st.session_state.history_payloads = {}
 if "live_weather_active" not in st.session_state:
-    st.session_state.live_weather_active = False
+    st.session_state.live_weather_active = True
 if "weather_feed" not in st.session_state:
-    st.session_state.weather_feed = LiveWeatherFeed(lat=DEFAULT_LAT, lon=DEFAULT_LON)
+    feed = LiveWeatherFeed(lat=DEFAULT_LAT, lon=DEFAULT_LON)
+    feed.poll(current_minute=1, force=True)
+    st.session_state.weather_feed = feed
 if "weather_events_by_min" not in st.session_state:
     st.session_state.weather_events_by_min = {}
 if "weather_lat" not in st.session_state:
@@ -275,6 +277,12 @@ if st.session_state.live_weather_active:
             if st.session_state.weather_feed.rolling_history else 0.0
         )
         st.sidebar.success(f"🟢 Open-Meteo Connected: {last_val:.1f} mm/h")
+
+    if st.sidebar.button("🔄 Refresh Live Weather Now", use_container_width=True, help="Force an immediate live query to Open-Meteo."):
+        st.session_state.weather_feed.poll(current_minute=st.session_state.current_minute, force=True)
+        st.session_state.history_payloads = {}
+        st.session_state.weather_events_by_min = {}
+        st.rerun()
 
 st.sidebar.markdown("---")
 
