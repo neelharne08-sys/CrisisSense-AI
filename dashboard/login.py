@@ -14,8 +14,13 @@ def render_login_page():
     Renders the CrisisSense AI login portal — identical to the reference design
     and connected directly to Supabase Auth API with Google OAuth support.
     """
-    # ── Check for incoming Google OAuth callback code ──────────────────────
+    # ── Check for incoming Google OAuth callback code or errors ───────────
     oauth_code = st.query_params.get("code")
+    oauth_err = st.query_params.get("error_description") or st.query_params.get("error")
+    if oauth_err:
+        st.session_state.login_error = f"OAuth Error: {oauth_err}"
+        st.query_params.clear()
+
     if oauth_code and not st.session_state.get("authenticated", False):
         with st.spinner("Authenticating with Google via Supabase..."):
             ok, profile, msg = handle_oauth_code(oauth_code)
@@ -358,8 +363,8 @@ def render_login_page():
         # ── Google OAuth Sign-In (Configurable in Google Cloud Console) ────
         st.markdown('<div class="cs-divider">or continue with</div>', unsafe_allow_html=True)
         
-        # Build Google OAuth URL pointing to current host
-        google_oauth_url = get_google_auth_url("http://localhost:8503")
+        # Build Google OAuth URL pointing to current host (port 8501)
+        google_oauth_url = get_google_auth_url("http://localhost:8501")
         st.markdown(f"""
         <a class="cs-google-btn" href="{google_oauth_url}" target="_self">
             <svg width="18" height="18" viewBox="0 0 24 24">
